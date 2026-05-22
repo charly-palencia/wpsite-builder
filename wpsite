@@ -816,6 +816,25 @@ cmd_dns_install() {
         if command -v apt-get &> /dev/null; then
             sudo apt-get update
             sudo apt-get install -y dnsmasq
+
+            # On Ubuntu, systemd-resolved may block port 53
+            if systemctl is-active --quiet systemd-resolved 2>/dev/null; then
+                echo -e "${YELLOW}systemd-resolved is running on port 53. Stopping...${NC}"
+                sudo systemctl stop systemd-resolved
+                sudo systemctl disable systemd-resolved
+            fi
+
+            if command -v systemctl &> /dev/null; then
+                sudo systemctl enable dnsmasq || true
+                sudo systemctl start dnsmasq || {
+                    echo -e "${YELLOW}Failed to start dnsmasq automatically.${NC}"
+                    echo -e "  Try: ${CYAN}sudo systemctl status dnsmasq${NC}"
+                    echo -e "  Check: ${CYAN}sudo journalctl -u dnsmasq -n 20${NC}"
+                }
+            else
+                echo -e "${YELLOW}systemctl not found. Start dnsmasq manually:${NC}"
+                echo -e "  ${CYAN}sudo dnsmasq${NC}"
+            fi
         elif command -v dnf &> /dev/null; then
             sudo dnf install -y dnsmasq
         elif command -v yum &> /dev/null; then
