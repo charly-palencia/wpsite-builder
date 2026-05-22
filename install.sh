@@ -131,6 +131,46 @@ if ! mv "$TMP_FILE" "$INSTALL_PATH" 2>/dev/null; then
     sudo mv "$TMP_FILE" "$INSTALL_PATH"
 fi
 
+# Check if install directory is in PATH
+if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
+    echo ""
+    echo -e "${YELLOW}⚠ ${INSTALL_DIR} is not in your PATH${NC}"
+    echo -e "  You won't be able to run 'wpsite' from any directory without adding it."
+
+    # Detect shell config file
+    SHELL_NAME="$(basename "${SHELL:-/bin/bash}")"
+    case "$SHELL_NAME" in
+        zsh)   RC_FILE="${HOME}/.zshrc" ;;
+        bash)  RC_FILE="${HOME}/.bashrc"
+               [ "$OS" = "Darwin" ] && RC_FILE="${HOME}/.bash_profile" ;;
+        fish)  RC_FILE="${HOME}/.config/fish/config.fish" ;;
+        *)     RC_FILE="${HOME}/.profile" ;;
+    esac
+
+    echo ""
+    read -p "Add 'export PATH=\"\$PATH:${INSTALL_DIR}\"' to ${RC_FILE}? (Y/n): " add_to_path
+    add_to_path=${add_to_path:-Y}
+    if [[ "$add_to_path" =~ ^[Yy]$ ]]; then
+        # Use the appropriate syntax for fish vs bash/zsh
+        case "$SHELL_NAME" in
+            fish)
+                echo "set -gx PATH \$PATH ${INSTALL_DIR}" >> "$RC_FILE"
+                ;;
+            *)
+                echo "" >> "$RC_FILE"
+                echo "# Added by wpsite installer" >> "$RC_FILE"
+                echo "export PATH=\"\$PATH:${INSTALL_DIR}\"" >> "$RC_FILE"
+                ;;
+        esac
+        echo -e "${GREEN}✓ Added to ${RC_FILE}${NC}"
+        echo -e "  ${YELLOW}Run 'source ${RC_FILE}' or restart your terminal to apply.${NC}"
+    else
+        echo -e "  ${YELLOW}Skipped. You can manually add it later:${NC}"
+        echo "    export PATH=\"\$PATH:${INSTALL_DIR}\""
+    fi
+    echo ""
+fi
+
 echo ""
 echo -e "${GREEN}✓ wpsite installed successfully!${NC}"
 echo ""
