@@ -794,6 +794,18 @@ cmd_dns() {
     esac
 }
 
+# Linux: write dnsmasq config for .test domains, bind to 127.0.0.1 only
+configure_dnsmasq_linux() {
+    local conf
+    if [ -d "/etc/dnsmasq.d" ]; then
+        conf="/etc/dnsmasq.d/wp-test.conf"
+        printf 'bind-interfaces\nlisten-address=127.0.0.1\naddress=/test/127.0.0.1\n' | sudo tee "$conf" > /dev/null
+    else
+        conf="/etc/dnsmasq.conf"
+        echo "address=/test/127.0.0.1" | sudo tee -a "$conf" > /dev/null
+    fi
+}
+
 cmd_dns_install() {
     local os="$1"
 
@@ -827,16 +839,8 @@ cmd_dns_install() {
             exit 1
         fi
 
-        # Configure dnsmasq for .test domains
-        if [ -d "/etc/dnsmasq.d" ]; then
-            echo "address=/test/127.0.0.1" | sudo tee /etc/dnsmasq.d/wp-test.conf > /dev/null
-            echo -e "  ${GREEN}+${NC} Configured dnsmasq for .test domains"
-        else
-            if ! grep -q "address=/test/127.0.0.1" /etc/dnsmasq.conf 2>/dev/null; then
-                echo "address=/test/127.0.0.1" | sudo tee -a /etc/dnsmasq.conf > /dev/null
-                echo -e "  ${GREEN}+${NC} Configured dnsmasq for .test domains"
-            fi
-        fi
+        configure_dnsmasq_linux
+        echo -e "  ${GREEN}+${NC} Configured dnsmasq for .test domains"
 
         # Configure systemd-resolved to forward .test to dnsmasq (don't stop it!)
         if command -v systemctl &> /dev/null; then
@@ -908,15 +912,8 @@ cmd_dns_setup() {
         sudo killall -HUP mDNSResponder 2>/dev/null || true
 
     elif [ "$os" = "linux" ]; then
-        if [ -d "/etc/dnsmasq.d" ]; then
-            echo "address=/test/127.0.0.1" | sudo tee /etc/dnsmasq.d/wp-test.conf > /dev/null
-            echo -e "  ${GREEN}+${NC} Created /etc/dnsmasq.d/wp-test.conf"
-        else
-            if ! grep -q "address=/test/127.0.0.1" /etc/dnsmasq.conf 2>/dev/null; then
-                echo "address=/test/127.0.0.1" | sudo tee -a /etc/dnsmasq.conf > /dev/null
-                echo -e "  ${GREEN}+${NC} Added to /etc/dnsmasq.conf"
-            fi
-        fi
+        configure_dnsmasq_linux
+        echo -e "  ${GREEN}+${NC} Configured dnsmasq for .test domains"
 
         # Configure systemd-resolved to forward .test queries to dnsmasq
         if command -v systemctl &> /dev/null && systemctl is-active --quiet systemd-resolved 2>/dev/null; then
