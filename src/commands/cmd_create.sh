@@ -1,5 +1,5 @@
+# shellcheck shell=bash
 cmd_create() {
-    local site_name="$1"
     local domain_suffix="$2"
 
     if [ -z "$site_name" ]; then
@@ -13,24 +13,23 @@ cmd_create() {
     if [ -n "$domain_suffix" ]; then
         local domain="${site_name}.${domain_suffix}"
     else
-        read -p "Enter domain suffix (default: test): " domain_suffix
+        read -rp "Enter domain suffix (default: test): " domain_suffix
         domain_suffix=${domain_suffix:-test}
         local domain="${site_name}.${domain_suffix}"
     fi
 
     local pma_domain="pma.${domain_suffix}"
 
-    read -p "Use HTTPS? (Y/n): " use_https
+    read -rp "Use HTTPS? (Y/n): " use_https
     use_https=${use_https:-Y}
     if [[ "$use_https" =~ ^[Nn]$ ]]; then
         local traefik_entrypoint="web"
-        local traefik_tls="false"
         local protocol="http"
         local use_ssl=false
     else
         if ! check_mkcert_installed; then
             echo -e "${RED}Error: mkcert is required for HTTPS${NC}"
-            read -p "Install mkcert now? (Y/n): " install_mk
+            read -rp "Install mkcert now? (Y/n): " install_mk
             install_mk=${install_mk:-Y}
             if [[ "$install_mk" =~ ^[Yy]$ ]]; then
                 install_mkcert
@@ -44,14 +43,14 @@ cmd_create() {
         fi
 
         local traefik_entrypoint="websecure"
-        local traefik_tls="true"
         local protocol="https"
         local use_ssl=true
     fi
 
     local db_name="wp_${site_name//-/_}"
     local db_user="wp_${site_name//-/_}"
-    local db_password=$(openssl rand -hex 12)
+    local db_password
+    db_password=$(openssl rand -hex 12)
 
     if [ -d "$site_dir" ]; then
         echo -e "${RED}Error: Site '$site_name' already exists${NC}"
@@ -68,7 +67,8 @@ cmd_create() {
 
     echo -e "${CYAN}Creating WordPress site: ${GREEN}${protocol}://${domain}${NC}"
 
-    local user_exists=$(docker exec wp-mariadb mariadb -uroot -p"${DB_ROOT_PASSWORD}" -e "SELECT 1 FROM mysql.user WHERE user='${db_user}' LIMIT 1;" 2>/dev/null | tail -n1 || echo "0")
+    local user_exists
+    user_exists=$(docker exec wp-mariadb mariadb -uroot -p"${DB_ROOT_PASSWORD}" -e "SELECT 1 FROM mysql.user WHERE user='${db_user}' LIMIT 1;" 2>/dev/null | tail -n1 || echo "0")
 
     if [ "$user_exists" = "1" ]; then
         echo -e "${YELLOW}Database user exists. Updating...${NC}"
@@ -143,7 +143,8 @@ networks:
 COMPOSE
 
     local dynamic_file="$SITES_DIR/traefik-dynamic.yml"
-    local content=$(cat "$dynamic_file")
+    local content
+    content=$(cat "$dynamic_file")
     local router_entry="    ${site_name}:\n      rule: \"Host(\`${domain}\`)\"\n      entryPoints:\n        - \"${traefik_entrypoint}\"\n      service: \"${site_name}\""
 
     if [ "$use_ssl" = true ]; then
@@ -154,8 +155,6 @@ COMPOSE
     content=$(echo "$content" | sed "/^  services:/i\\
 ${router_entry}
 ")
-
-    local service_entry="    ${site_name}:\n      loadBalancer:\n        servers:\n          - url: \"http://wp-${site_name}:80\""
 
     # Insert service before services section, then append the new service
     content=$(echo "$content" | sed "/^  services:/a\\

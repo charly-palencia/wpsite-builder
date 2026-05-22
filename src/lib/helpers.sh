@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # =============================================
 # helpers.sh - Shared helper functions
 # =============================================
@@ -70,7 +71,8 @@ get_pma_domain() {
     local pma_domain="pma.test"
     for dir in "$SITES_DIR"/*/; do
         [ -f "$dir/.site-info" ] || continue
-        local suffix=$(grep "^DOMAIN_SUFFIX=" "$dir/.site-info" 2>/dev/null | cut -d= -f2)
+        local suffix
+        suffix=$(grep "^DOMAIN_SUFFIX=" "$dir/.site-info" 2>/dev/null | cut -d= -f2)
         if [ -n "$suffix" ]; then
             pma_domain="pma.${suffix}"
             break

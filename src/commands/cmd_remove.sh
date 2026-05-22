@@ -1,5 +1,5 @@
+# shellcheck shell=bash
 cmd_remove() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: You must specify a site name${NC}"
@@ -17,8 +17,11 @@ cmd_remove() {
     local db_name="wp_${site_name//-/_}"
     local db_user="wp_${site_name//-/_}"
     if [ -f "$site_dir/.site-info" ]; then
-        db_name=$(grep "^DB_NAME=" "$site_dir/.site-info" | cut -d= -f2)
-        db_user=$(grep "^DB_USER=" "$site_dir/.site-info" | cut -d= -f2)
+        local _db_name _db_user
+        _db_name=$(grep "^DB_NAME=" "$site_dir/.site-info" | cut -d= -f2)
+        _db_user=$(grep "^DB_USER=" "$site_dir/.site-info" | cut -d= -f2)
+        db_name="$_db_name"
+        db_user="$_db_user"
     fi
 
     echo -e "${YELLOW}This will completely remove site '${site_name}':${NC}"
@@ -27,7 +30,7 @@ cmd_remove() {
     echo -e "  - DB User: ${CYAN}${db_user}${NC}"
     echo -e "  - Files: ${CYAN}${site_dir}${NC}"
     echo ""
-    read -p "Are you sure? (y/N): " confirm
+    read -rp "Are you sure? (y/N): " confirm
 
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         echo "Canceled."
@@ -36,7 +39,7 @@ cmd_remove() {
 
     echo -e "${YELLOW}Removing site...${NC}"
 
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose down -v 2>/dev/null || true
 
     if docker ps --format '{{.Names}}' | grep -q 'wp-mariadb'; then

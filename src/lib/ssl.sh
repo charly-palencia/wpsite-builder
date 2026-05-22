@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # =============================================
 # ssl.sh - mkcert and SSL functions
 # =============================================
@@ -11,7 +12,8 @@ check_mkcert_installed() {
 }
 
 install_mkcert() {
-    local os=$(detect_os)
+    local os
+    os=$(detect_os)
 
     echo -e "${YELLOW}Installing mkcert...${NC}"
 
@@ -55,9 +57,11 @@ generate_ssl_cert() {
     echo -e "${YELLOW}Generating SSL certificate for ${domain}...${NC}"
 
     # Generate certificate and key
-    mkcert -cert-file "$cert_dir/cert.pem" -key-file "$cert_dir/key.pem" "$domain" "*.${domain}" 2>/dev/null
+    local mkcert_result
+    mkcert_result=0
+    mkcert -cert-file "$cert_dir/cert.pem" -key-file "$cert_dir/key.pem" "$domain" "*.${domain}" 2>/dev/null || mkcert_result=$?
 
-    if [ $? -eq 0 ]; then
+    if [ "$mkcert_result" -eq 0 ]; then
         echo -e "${GREEN}SSL certificate generated successfully${NC}"
         return 0
     else
@@ -104,9 +108,6 @@ configure_site_ssl_in_traefik() {
     # Remove any existing cert entry for this site (dedup)
     content=$(echo "$content" | sed -n '/# cert: '"${site_name}"'/,/^  - certFile:/{/^  - certFile:/d; /# cert: '"${site_name}"'/d;};p')
 
-    # Insert new certificate entry after the tls: certificates: line
-    local cert_entry="  certificates:\n    - certFile: /etc/traefik/certs/${site_name}-cert.pem\n      keyFile: /etc/traefik/certs/${site_name}-key.pem\n      # cert: ${site_name}"
-
     # Insert after the tls: certificates: line
     content=$(echo "$content" | sed "/^tls:/,/^  stores:/{
 /^  certificates:/a\
@@ -116,7 +117,6 @@ configure_site_ssl_in_traefik() {
 
     # Ensure HTTPS router exists for this site
     if ! echo "$content" | grep -q "router-${site_name}-https"; then
-        local router_entry="\n    ${site_name}-https:\n      rule: \"Host(\`${domain}\`)\"\n      entryPoints:\n        - \"websecure\"\n      service: \"${site_name}\"\n      tls: {}\n"
         # Insert before the services section
         content=$(echo "$content" | sed "/^  services:/i\\
     ${site_name}-https:\\

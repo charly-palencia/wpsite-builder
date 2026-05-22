@@ -1,6 +1,10 @@
+# shellcheck shell=bash
+
 COMMAND="${1:-help}"
 ARG1="$2"
 ARG2="$3"
+
+# shellcheck disable=SC2034
 
 if [ "$COMMAND" = "--version" ] || [ "$COMMAND" = "-v" ] || [ "$COMMAND" = "version" ]; then
     echo "wpsite version $VERSION"

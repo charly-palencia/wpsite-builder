@@ -1,5 +1,5 @@
+# shellcheck shell=bash
 cmd_restart() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"
@@ -15,11 +15,12 @@ cmd_restart() {
     fi
 
     echo -e "${YELLOW}Restarting site '${site_name}'...${NC}"
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose restart
 
     if [ -f "$site_dir/.site-info" ]; then
-        local domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+        local domain
+        domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
         echo -e "${GREEN}Site restarted: http://${domain}${NC}"
     else
         echo -e "${GREEN}Site restarted${NC}"

@@ -1,5 +1,5 @@
+# shellcheck shell=bash
 cmd_shell() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"
@@ -14,6 +14,6 @@ cmd_shell() {
         exit 1
     fi
 
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose exec wordpress bash
 }

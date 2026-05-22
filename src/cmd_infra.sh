@@ -1,5 +1,5 @@
+# shellcheck shell=bash
 cmd_infra_install() {
-    echo -e "${CYAN}Installing base infrastructure...${NC}"
 
     check_docker
 
@@ -10,7 +10,7 @@ cmd_infra_install() {
 
     if [ -f "$SITES_DIR/docker-compose.yml" ]; then
         echo -e "${YELLOW}docker-compose.yml already exists at ${SITES_DIR}${NC}"
-        read -p "Overwrite? (y/N): " overwrite
+        read -rp "Overwrite? (y/N): " overwrite
         if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
             echo "Canceled."
             exit 0
@@ -123,8 +123,9 @@ DYNAMIC
         setup_mkcert_caroot
         if [ ! -f "$SITES_DIR/certs/default.pem" ]; then
             echo -e "${YELLOW}Generating default SSL certificate for Traefik...${NC}"
-            mkcert -cert-file "$SITES_DIR/certs/default.pem" -key-file "$SITES_DIR/certs/default-key.pem" "*.test" "*.local" "localhost" 2>/dev/null
-            if [ $? -eq 0 ]; then
+            local mkcert_result=0
+            mkcert -cert-file "$SITES_DIR/certs/default.pem" -key-file "$SITES_DIR/certs/default-key.pem" "*.test" "*.local" "localhost" 2>/dev/null || mkcert_result=$?
+            if [ "$mkcert_result" -eq 0 ]; then
                 echo -e "${GREEN}Default certificate generated${NC}"
             fi
         fi
@@ -158,7 +159,7 @@ cmd_infra() {
                 echo -e "${RED}Error: $SITES_DIR does not exist${NC}"
                 exit 1
             fi
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose up -d
             echo -e "${GREEN}Infrastructure started${NC}"
             echo ""
@@ -167,13 +168,13 @@ cmd_infra() {
             ;;
         stop|down)
             echo -e "${YELLOW}Stopping base infrastructure...${NC}"
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose down
             echo -e "${GREEN}Infrastructure stopped${NC}"
             ;;
         restart|r)
             echo -e "${YELLOW}Restarting base infrastructure...${NC}"
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose restart
             echo -e "${GREEN}Infrastructure restarted${NC}"
             echo ""
@@ -203,21 +204,27 @@ cmd_infra() {
 
             local domain=""
             if [ -f "$site_dir/.site-info" ]; then
-                domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+                local _domain
+                _domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+                domain="$_domain"
             fi
 
             if [ -z "$domain" ] && [ -f "$site_dir/docker-compose.yml" ]; then
-                domain=$(grep -o "Host(\`[^']*\`)" "$site_dir/docker-compose.yml" | head -1 | sed "s/Host(\`//;s/\`//")
+                local _domain
+                _domain=$(grep -o "Host(\`[^']*\`)" "$site_dir/docker-compose.yml" | head -1 | sed "s/Host(\`//;s/\`//")
+                domain="$_domain"
             fi
 
             if [ -z "$domain" ] && [ -f "$SITES_DIR/traefik-dynamic.yml" ]; then
-                domain=$(grep -A2 "rule: \"Host(\`${site_name}" "$SITES_DIR/traefik-dynamic.yml" | grep "rule:" | sed 's/.*Host(`//;s/`)//' | head -1)
+                local _domain
+                _domain=$(grep -A2 "rule: \"Host(\`${site_name}" "$SITES_DIR/traefik-dynamic.yml" | grep "rule:" | sed "s/.*Host(\`//;s/\`)//" | head -1)
+                domain="$_domain"
             fi
 
             if [ -z "$domain" ]; then
                 echo -e "${RED}Error: Could not determine domain for site '$site_name'${NC}"
                 echo "Please provide the domain:"
-                read -p "Domain (e.g., gmaq.test): " domain
+                read -rp "Domain (e.g., gmaq.test): " domain
                 if [ -z "$domain" ]; then
                     echo -e "${RED}Domain is required${NC}"
                     exit 1
@@ -231,7 +238,7 @@ cmd_infra() {
             fi
 
             echo -e "${YELLOW}Restarting Traefik...${NC}"
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose restart traefik
 
             echo -e "${GREEN}SSL configured for $site_name ($domain)${NC}"
@@ -250,7 +257,8 @@ cmd_infra() {
             local infra_running=0
             for svc in wp-mariadb wp-traefik wp-phpmyadmin; do
                 if docker ps --format '{{.Names}}' | grep -q "^${svc}$"; then
-                    local status=$(docker ps --format '{{.Status}}' --filter "name=${svc}")
+                    local status
+                    status=$(docker ps --format '{{.Status}}' --filter "name=${svc}")
                     echo -e "  ${GREEN}●${NC} ${svc}"
                     echo -e "       ${DIM}${status}${NC}"
                     infra_running=1
@@ -260,7 +268,8 @@ cmd_infra() {
             done
             echo ""
             if [ "$infra_running" -eq 1 ]; then
-                local pma_domain=$(get_pma_domain)
+                local pma_domain
+                pma_domain=$(get_pma_domain)
                 echo -e "  phpMyAdmin: ${CYAN}http://${pma_domain}${NC}"
             fi
             ;;
@@ -268,7 +277,7 @@ cmd_infra() {
             cmd_infra_install
             ;;
         logs)
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose logs -f
             ;;
         *)

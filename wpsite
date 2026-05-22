@@ -9,12 +9,16 @@ set -e
 # =============================================
 
 # --- src/lib/config.sh ---
+# shellcheck shell=bash
 # =============================================
 # config.sh - Global configuration and constants
 # =============================================
 
 # Single source of truth: VERSION file at project root
 # Run: make set-version NEW_VERSION=x.y.z
+
+# These variables are used across sourced modules
+# shellcheck disable=SC2034
 VERSION="1.3.1"
 DB_ROOT_PASSWORD="wp_root_secret_2024"
 
@@ -29,6 +33,7 @@ NC='\033[0m'
 # Base directory
 SITES_DIR="$HOME/wp-sites"
 # --- src/lib/detect_os.sh ---
+# shellcheck shell=bash
 # =============================================
 # detect_os.sh - OS detection
 # =============================================
@@ -43,6 +48,7 @@ detect_os() {
     fi
 }
 # --- src/lib/helpers.sh ---
+# shellcheck shell=bash
 # =============================================
 # helpers.sh - Shared helper functions
 # =============================================
@@ -115,7 +121,8 @@ get_pma_domain() {
     local pma_domain="pma.test"
     for dir in "$SITES_DIR"/*/; do
         [ -f "$dir/.site-info" ] || continue
-        local suffix=$(grep "^DOMAIN_SUFFIX=" "$dir/.site-info" 2>/dev/null | cut -d= -f2)
+        local suffix
+        suffix=$(grep "^DOMAIN_SUFFIX=" "$dir/.site-info" 2>/dev/null | cut -d= -f2)
         if [ -n "$suffix" ]; then
             pma_domain="pma.${suffix}"
             break
@@ -124,6 +131,7 @@ get_pma_domain() {
     echo "$pma_domain"
 }
 # --- src/lib/ssl.sh ---
+# shellcheck shell=bash
 # =============================================
 # ssl.sh - mkcert and SSL functions
 # =============================================
@@ -137,7 +145,8 @@ check_mkcert_installed() {
 }
 
 install_mkcert() {
-    local os=$(detect_os)
+    local os
+    os=$(detect_os)
 
     echo -e "${YELLOW}Installing mkcert...${NC}"
 
@@ -181,9 +190,11 @@ generate_ssl_cert() {
     echo -e "${YELLOW}Generating SSL certificate for ${domain}...${NC}"
 
     # Generate certificate and key
-    mkcert -cert-file "$cert_dir/cert.pem" -key-file "$cert_dir/key.pem" "$domain" "*.${domain}" 2>/dev/null
+    local mkcert_result
+    mkcert_result=0
+    mkcert -cert-file "$cert_dir/cert.pem" -key-file "$cert_dir/key.pem" "$domain" "*.${domain}" 2>/dev/null || mkcert_result=$?
 
-    if [ $? -eq 0 ]; then
+    if [ "$mkcert_result" -eq 0 ]; then
         echo -e "${GREEN}SSL certificate generated successfully${NC}"
         return 0
     else
@@ -230,9 +241,6 @@ configure_site_ssl_in_traefik() {
     # Remove any existing cert entry for this site (dedup)
     content=$(echo "$content" | sed -n '/# cert: '"${site_name}"'/,/^  - certFile:/{/^  - certFile:/d; /# cert: '"${site_name}"'/d;};p')
 
-    # Insert new certificate entry after the tls: certificates: line
-    local cert_entry="  certificates:\n    - certFile: /etc/traefik/certs/${site_name}-cert.pem\n      keyFile: /etc/traefik/certs/${site_name}-key.pem\n      # cert: ${site_name}"
-
     # Insert after the tls: certificates: line
     content=$(echo "$content" | sed "/^tls:/,/^  stores:/{
 /^  certificates:/a\
@@ -242,7 +250,6 @@ configure_site_ssl_in_traefik() {
 
     # Ensure HTTPS router exists for this site
     if ! echo "$content" | grep -q "router-${site_name}-https"; then
-        local router_entry="\n    ${site_name}-https:\n      rule: \"Host(\`${domain}\`)\"\n      entryPoints:\n        - \"websecure\"\n      service: \"${site_name}\"\n      tls: {}\n"
         # Insert before the services section
         content=$(echo "$content" | sed "/^  services:/i\\
     ${site_name}-https:\\
@@ -281,8 +288,8 @@ configure_site_ssl_in_traefik() {
     echo -e "${GREEN}Traefik configuration updated for ${domain} (HTTPS)${NC}"
 }
 # --- src/commands/cmd_create.sh ---
+# shellcheck shell=bash
 cmd_create() {
-    local site_name="$1"
     local domain_suffix="$2"
 
     if [ -z "$site_name" ]; then
@@ -296,24 +303,23 @@ cmd_create() {
     if [ -n "$domain_suffix" ]; then
         local domain="${site_name}.${domain_suffix}"
     else
-        read -p "Enter domain suffix (default: test): " domain_suffix
+        read -rp "Enter domain suffix (default: test): " domain_suffix
         domain_suffix=${domain_suffix:-test}
         local domain="${site_name}.${domain_suffix}"
     fi
 
     local pma_domain="pma.${domain_suffix}"
 
-    read -p "Use HTTPS? (Y/n): " use_https
+    read -rp "Use HTTPS? (Y/n): " use_https
     use_https=${use_https:-Y}
     if [[ "$use_https" =~ ^[Nn]$ ]]; then
         local traefik_entrypoint="web"
-        local traefik_tls="false"
         local protocol="http"
         local use_ssl=false
     else
         if ! check_mkcert_installed; then
             echo -e "${RED}Error: mkcert is required for HTTPS${NC}"
-            read -p "Install mkcert now? (Y/n): " install_mk
+            read -rp "Install mkcert now? (Y/n): " install_mk
             install_mk=${install_mk:-Y}
             if [[ "$install_mk" =~ ^[Yy]$ ]]; then
                 install_mkcert
@@ -327,14 +333,14 @@ cmd_create() {
         fi
 
         local traefik_entrypoint="websecure"
-        local traefik_tls="true"
         local protocol="https"
         local use_ssl=true
     fi
 
     local db_name="wp_${site_name//-/_}"
     local db_user="wp_${site_name//-/_}"
-    local db_password=$(openssl rand -hex 12)
+    local db_password
+    db_password=$(openssl rand -hex 12)
 
     if [ -d "$site_dir" ]; then
         echo -e "${RED}Error: Site '$site_name' already exists${NC}"
@@ -351,7 +357,8 @@ cmd_create() {
 
     echo -e "${CYAN}Creating WordPress site: ${GREEN}${protocol}://${domain}${NC}"
 
-    local user_exists=$(docker exec wp-mariadb mariadb -uroot -p"${DB_ROOT_PASSWORD}" -e "SELECT 1 FROM mysql.user WHERE user='${db_user}' LIMIT 1;" 2>/dev/null | tail -n1 || echo "0")
+    local user_exists
+    user_exists=$(docker exec wp-mariadb mariadb -uroot -p"${DB_ROOT_PASSWORD}" -e "SELECT 1 FROM mysql.user WHERE user='${db_user}' LIMIT 1;" 2>/dev/null | tail -n1 || echo "0")
 
     if [ "$user_exists" = "1" ]; then
         echo -e "${YELLOW}Database user exists. Updating...${NC}"
@@ -426,7 +433,8 @@ networks:
 COMPOSE
 
     local dynamic_file="$SITES_DIR/traefik-dynamic.yml"
-    local content=$(cat "$dynamic_file")
+    local content
+    content=$(cat "$dynamic_file")
     local router_entry="    ${site_name}:\n      rule: \"Host(\`${domain}\`)\"\n      entryPoints:\n        - \"${traefik_entrypoint}\"\n      service: \"${site_name}\""
 
     if [ "$use_ssl" = true ]; then
@@ -437,8 +445,6 @@ COMPOSE
     content=$(echo "$content" | sed "/^  services:/i\\
 ${router_entry}
 ")
-
-    local service_entry="    ${site_name}:\n      loadBalancer:\n        servers:\n          - url: \"http://wp-${site_name}:80\""
 
     # Insert service before services section, then append the new service
     content=$(echo "$content" | sed "/^  services:/a\\
@@ -486,8 +492,8 @@ INFO
     echo -e "  ${YELLOW}Check progress: wpsite logs ${site_name}${NC}"
 }
 # --- src/commands/cmd_list.sh ---
+# shellcheck shell=bash
 cmd_list() {
-    echo ""
     echo -e "${CYAN}WordPress Sites${NC}"
     echo -e "${DIM}─────────────────────────────────────────────${NC}"
 
@@ -496,14 +502,16 @@ cmd_list() {
         exit 0
     fi
 
-    local pma_domain=$(get_pma_domain)
+    local pma_domain
+    pma_domain=$(get_pma_domain)
     local found=0
 
     for site_dir in "$SITES_DIR"/*/; do
         [ -f "$site_dir/docker-compose.yml" ] || continue
         grep -q "^  traefik:" "$site_dir/docker-compose.yml" 2>/dev/null && continue
 
-        local site_name=$(basename "$site_dir")
+        local site_name
+        site_name=$(basename "$site_dir")
         found=1
 
         if docker ps --format '{{.Names}}' | grep -q "wp-${site_name}$"; then
@@ -532,8 +540,8 @@ cmd_list() {
     echo ""
 }
 # --- src/commands/cmd_start.sh ---
+# shellcheck shell=bash
 cmd_start() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${YELLOW}Starting all sites...${NC}"
@@ -541,7 +549,8 @@ cmd_start() {
         for site_dir in "$SITES_DIR"/*/; do
             [ -f "$site_dir/docker-compose.yml" ] || continue
             grep -q "^  traefik:" "$site_dir/docker-compose.yml" 2>/dev/null && continue
-            local name=$(basename "$site_dir")
+            local name
+            name=$(basename "$site_dir")
             echo -e "  Starting ${CYAN}${name}${NC}..."
             (cd "$site_dir" && docker compose up -d)
         done
@@ -559,26 +568,28 @@ cmd_start() {
     ensure_base_infra
 
     echo -e "${YELLOW}Starting site '${site_name}'...${NC}"
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose up -d
 
     if [ -f "$site_dir/.site-info" ]; then
-        local domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+        local domain
+        domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
         echo -e "${GREEN}Site started: http://${domain}${NC}"
     else
         echo -e "${GREEN}Site started${NC}"
     fi
 }
 # --- src/commands/cmd_stop.sh ---
+# shellcheck shell=bash
 cmd_stop() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${YELLOW}Stopping all sites...${NC}"
         for site_dir in "$SITES_DIR"/*/; do
             [ -f "$site_dir/docker-compose.yml" ] || continue
             grep -q "^  traefik:" "$site_dir/docker-compose.yml" 2>/dev/null && continue
-            local name=$(basename "$site_dir")
+            local name
+            name=$(basename "$site_dir")
             echo -e "  Stopping ${CYAN}${name}${NC}..."
             (cd "$site_dir" && docker compose down 2>/dev/null || true)
         done
@@ -594,14 +605,14 @@ cmd_stop() {
     fi
 
     echo -e "${YELLOW}Stopping site '${site_name}'...${NC}"
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose down
 
     echo -e "${GREEN}Site stopped${NC}"
 }
 # --- src/commands/cmd_restart.sh ---
+# shellcheck shell=bash
 cmd_restart() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"
@@ -617,19 +628,20 @@ cmd_restart() {
     fi
 
     echo -e "${YELLOW}Restarting site '${site_name}'...${NC}"
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose restart
 
     if [ -f "$site_dir/.site-info" ]; then
-        local domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+        local domain
+        domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
         echo -e "${GREEN}Site restarted: http://${domain}${NC}"
     else
         echo -e "${GREEN}Site restarted${NC}"
     fi
 }
 # --- src/commands/cmd_remove.sh ---
+# shellcheck shell=bash
 cmd_remove() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: You must specify a site name${NC}"
@@ -647,8 +659,11 @@ cmd_remove() {
     local db_name="wp_${site_name//-/_}"
     local db_user="wp_${site_name//-/_}"
     if [ -f "$site_dir/.site-info" ]; then
-        db_name=$(grep "^DB_NAME=" "$site_dir/.site-info" | cut -d= -f2)
-        db_user=$(grep "^DB_USER=" "$site_dir/.site-info" | cut -d= -f2)
+        local _db_name _db_user
+        _db_name=$(grep "^DB_NAME=" "$site_dir/.site-info" | cut -d= -f2)
+        _db_user=$(grep "^DB_USER=" "$site_dir/.site-info" | cut -d= -f2)
+        db_name="$_db_name"
+        db_user="$_db_user"
     fi
 
     echo -e "${YELLOW}This will completely remove site '${site_name}':${NC}"
@@ -657,7 +672,7 @@ cmd_remove() {
     echo -e "  - DB User: ${CYAN}${db_user}${NC}"
     echo -e "  - Files: ${CYAN}${site_dir}${NC}"
     echo ""
-    read -p "Are you sure? (y/N): " confirm
+    read -rp "Are you sure? (y/N): " confirm
 
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         echo "Canceled."
@@ -666,7 +681,7 @@ cmd_remove() {
 
     echo -e "${YELLOW}Removing site...${NC}"
 
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose down -v 2>/dev/null || true
 
     if docker ps --format '{{.Names}}' | grep -q 'wp-mariadb'; then
@@ -686,8 +701,8 @@ cmd_remove() {
     echo -e "${GREEN}Site '${site_name}' removed${NC}"
 }
 # --- src/commands/cmd_logs.sh ---
+# shellcheck shell=bash
 cmd_logs() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"
@@ -702,12 +717,12 @@ cmd_logs() {
         exit 1
     fi
 
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose logs -f
 }
 # --- src/commands/cmd_shell.sh ---
+# shellcheck shell=bash
 cmd_shell() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"
@@ -722,16 +737,17 @@ cmd_shell() {
         exit 1
     fi
 
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose exec wordpress bash
 }
 # --- src/cmd_dns.sh ---
+# shellcheck shell=bash
 cmd_dns() {
-    local action="${1:-status}"
     local arg="$2"
-    local os=$(detect_os)
+    local os
+    os=$(detect_os)
 
-    case "$action" in
+    case "$arg" in
         install)
             cmd_dns_install "$os"
             ;;
@@ -762,7 +778,7 @@ cmd_dns() {
             cmd_dns_restart "$os"
             ;;
         *)
-            echo -e "${RED}Unknown dns command: $action${NC}"
+            echo -e "${RED}Unknown dns command: $arg${NC}"
             echo ""
             echo "Usage: wpsite dns [install|setup|add|remove|status|restart]"
             exit 1
@@ -990,8 +1006,9 @@ cmd_dns_status() {
             dnsmasq_conf="/usr/local/etc/dnsmasq.conf"
         fi
         if [ -f "$dnsmasq_conf" ]; then
-            grep "^address=" "$dnsmasq_conf" 2>/dev/null | while read line; do
-                local dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
+            grep "^address=" "$dnsmasq_conf" 2>/dev/null | while IFS= read -r line; do
+                local dom
+                dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
                 echo -e "      ${dom} -> 127.0.0.1"
             done
         fi
@@ -1001,7 +1018,8 @@ cmd_dns_status() {
             echo -e "  ${CYAN}Resolver configs:${NC}"
             for f in /etc/resolver/*; do
                 if [ -f "$f" ]; then
-                    local tld=$(basename "$f")
+                    local tld
+                    tld=$(basename "$f")
                     echo -e "      /etc/resolver/${tld}"
                 fi
             done
@@ -1011,15 +1029,17 @@ cmd_dns_status() {
         if [ -d "/etc/dnsmasq.d" ]; then
             for f in /etc/dnsmasq.d/wp-*.conf; do
                 if [ -f "$f" ]; then
-                    grep "^address=" "$f" | while read line; do
-                        local dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
+                    grep "^address=" "$f" | while IFS= read -r line; do
+                        local dom
+                        dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
                         echo -e "      ${dom} -> 127.0.0.1"
                     done
                 fi
             done
         fi
-        grep "^address=" /etc/dnsmasq.conf 2>/dev/null | while read line; do
-            local dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
+        grep "^address=" /etc/dnsmasq.conf 2>/dev/null | while IFS= read -r line; do
+            local dom
+            dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
             echo -e "      ${dom} -> 127.0.0.1"
         done
     fi
@@ -1042,8 +1062,8 @@ cmd_dns_restart() {
     echo -e "${GREEN}dnsmasq restarted${NC}"
 }
 # --- src/cmd_infra.sh ---
+# shellcheck shell=bash
 cmd_infra_install() {
-    echo -e "${CYAN}Installing base infrastructure...${NC}"
 
     check_docker
 
@@ -1054,7 +1074,7 @@ cmd_infra_install() {
 
     if [ -f "$SITES_DIR/docker-compose.yml" ]; then
         echo -e "${YELLOW}docker-compose.yml already exists at ${SITES_DIR}${NC}"
-        read -p "Overwrite? (y/N): " overwrite
+        read -rp "Overwrite? (y/N): " overwrite
         if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
             echo "Canceled."
             exit 0
@@ -1167,8 +1187,9 @@ DYNAMIC
         setup_mkcert_caroot
         if [ ! -f "$SITES_DIR/certs/default.pem" ]; then
             echo -e "${YELLOW}Generating default SSL certificate for Traefik...${NC}"
-            mkcert -cert-file "$SITES_DIR/certs/default.pem" -key-file "$SITES_DIR/certs/default-key.pem" "*.test" "*.local" "localhost" 2>/dev/null
-            if [ $? -eq 0 ]; then
+            local mkcert_result=0
+            mkcert -cert-file "$SITES_DIR/certs/default.pem" -key-file "$SITES_DIR/certs/default-key.pem" "*.test" "*.local" "localhost" 2>/dev/null || mkcert_result=$?
+            if [ "$mkcert_result" -eq 0 ]; then
                 echo -e "${GREEN}Default certificate generated${NC}"
             fi
         fi
@@ -1202,7 +1223,7 @@ cmd_infra() {
                 echo -e "${RED}Error: $SITES_DIR does not exist${NC}"
                 exit 1
             fi
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose up -d
             echo -e "${GREEN}Infrastructure started${NC}"
             echo ""
@@ -1211,13 +1232,13 @@ cmd_infra() {
             ;;
         stop|down)
             echo -e "${YELLOW}Stopping base infrastructure...${NC}"
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose down
             echo -e "${GREEN}Infrastructure stopped${NC}"
             ;;
         restart|r)
             echo -e "${YELLOW}Restarting base infrastructure...${NC}"
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose restart
             echo -e "${GREEN}Infrastructure restarted${NC}"
             echo ""
@@ -1247,21 +1268,27 @@ cmd_infra() {
 
             local domain=""
             if [ -f "$site_dir/.site-info" ]; then
-                domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+                local _domain
+                _domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+                domain="$_domain"
             fi
 
             if [ -z "$domain" ] && [ -f "$site_dir/docker-compose.yml" ]; then
-                domain=$(grep -o "Host(\`[^']*\`)" "$site_dir/docker-compose.yml" | head -1 | sed "s/Host(\`//;s/\`//")
+                local _domain
+                _domain=$(grep -o "Host(\`[^']*\`)" "$site_dir/docker-compose.yml" | head -1 | sed "s/Host(\`//;s/\`//")
+                domain="$_domain"
             fi
 
             if [ -z "$domain" ] && [ -f "$SITES_DIR/traefik-dynamic.yml" ]; then
-                domain=$(grep -A2 "rule: \"Host(\`${site_name}" "$SITES_DIR/traefik-dynamic.yml" | grep "rule:" | sed 's/.*Host(`//;s/`)//' | head -1)
+                local _domain
+                _domain=$(grep -A2 "rule: \"Host(\`${site_name}" "$SITES_DIR/traefik-dynamic.yml" | grep "rule:" | sed "s/.*Host(\`//;s/\`)//" | head -1)
+                domain="$_domain"
             fi
 
             if [ -z "$domain" ]; then
                 echo -e "${RED}Error: Could not determine domain for site '$site_name'${NC}"
                 echo "Please provide the domain:"
-                read -p "Domain (e.g., gmaq.test): " domain
+                read -rp "Domain (e.g., gmaq.test): " domain
                 if [ -z "$domain" ]; then
                     echo -e "${RED}Domain is required${NC}"
                     exit 1
@@ -1275,7 +1302,7 @@ cmd_infra() {
             fi
 
             echo -e "${YELLOW}Restarting Traefik...${NC}"
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose restart traefik
 
             echo -e "${GREEN}SSL configured for $site_name ($domain)${NC}"
@@ -1294,7 +1321,8 @@ cmd_infra() {
             local infra_running=0
             for svc in wp-mariadb wp-traefik wp-phpmyadmin; do
                 if docker ps --format '{{.Names}}' | grep -q "^${svc}$"; then
-                    local status=$(docker ps --format '{{.Status}}' --filter "name=${svc}")
+                    local status
+                    status=$(docker ps --format '{{.Status}}' --filter "name=${svc}")
                     echo -e "  ${GREEN}●${NC} ${svc}"
                     echo -e "       ${DIM}${status}${NC}"
                     infra_running=1
@@ -1304,7 +1332,8 @@ cmd_infra() {
             done
             echo ""
             if [ "$infra_running" -eq 1 ]; then
-                local pma_domain=$(get_pma_domain)
+                local pma_domain
+                pma_domain=$(get_pma_domain)
                 echo -e "  phpMyAdmin: ${CYAN}http://${pma_domain}${NC}"
             fi
             ;;
@@ -1312,7 +1341,7 @@ cmd_infra() {
             cmd_infra_install
             ;;
         logs)
-            cd "$SITES_DIR"
+            cd "$SITES_DIR" || exit 1
             docker compose logs -f
             ;;
         *)
@@ -1324,9 +1353,13 @@ cmd_infra() {
     esac
 }
 # --- src/dispatcher.sh ---
+# shellcheck shell=bash
+
 COMMAND="${1:-help}"
 ARG1="$2"
 ARG2="$3"
+
+# shellcheck disable=SC2034
 
 if [ "$COMMAND" = "--version" ] || [ "$COMMAND" = "-v" ] || [ "$COMMAND" = "version" ]; then
     echo "wpsite version $VERSION"

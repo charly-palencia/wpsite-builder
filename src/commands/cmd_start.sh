@@ -1,5 +1,5 @@
+# shellcheck shell=bash
 cmd_start() {
-    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${YELLOW}Starting all sites...${NC}"
@@ -7,7 +7,8 @@ cmd_start() {
         for site_dir in "$SITES_DIR"/*/; do
             [ -f "$site_dir/docker-compose.yml" ] || continue
             grep -q "^  traefik:" "$site_dir/docker-compose.yml" 2>/dev/null && continue
-            local name=$(basename "$site_dir")
+            local name
+            name=$(basename "$site_dir")
             echo -e "  Starting ${CYAN}${name}${NC}..."
             (cd "$site_dir" && docker compose up -d)
         done
@@ -25,11 +26,12 @@ cmd_start() {
     ensure_base_infra
 
     echo -e "${YELLOW}Starting site '${site_name}'...${NC}"
-    cd "$site_dir"
+    cd "$site_dir" || exit 1
     docker compose up -d
 
     if [ -f "$site_dir/.site-info" ]; then
-        local domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+        local domain
+        domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
         echo -e "${GREEN}Site started: http://${domain}${NC}"
     else
         echo -e "${GREEN}Site started${NC}"

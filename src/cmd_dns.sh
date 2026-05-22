@@ -1,9 +1,10 @@
+# shellcheck shell=bash
 cmd_dns() {
-    local action="${1:-status}"
     local arg="$2"
-    local os=$(detect_os)
+    local os
+    os=$(detect_os)
 
-    case "$action" in
+    case "$arg" in
         install)
             cmd_dns_install "$os"
             ;;
@@ -34,7 +35,7 @@ cmd_dns() {
             cmd_dns_restart "$os"
             ;;
         *)
-            echo -e "${RED}Unknown dns command: $action${NC}"
+            echo -e "${RED}Unknown dns command: $arg${NC}"
             echo ""
             echo "Usage: wpsite dns [install|setup|add|remove|status|restart]"
             exit 1
@@ -262,8 +263,9 @@ cmd_dns_status() {
             dnsmasq_conf="/usr/local/etc/dnsmasq.conf"
         fi
         if [ -f "$dnsmasq_conf" ]; then
-            grep "^address=" "$dnsmasq_conf" 2>/dev/null | while read line; do
-                local dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
+            grep "^address=" "$dnsmasq_conf" 2>/dev/null | while IFS= read -r line; do
+                local dom
+                dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
                 echo -e "      ${dom} -> 127.0.0.1"
             done
         fi
@@ -273,7 +275,8 @@ cmd_dns_status() {
             echo -e "  ${CYAN}Resolver configs:${NC}"
             for f in /etc/resolver/*; do
                 if [ -f "$f" ]; then
-                    local tld=$(basename "$f")
+                    local tld
+                    tld=$(basename "$f")
                     echo -e "      /etc/resolver/${tld}"
                 fi
             done
@@ -283,15 +286,17 @@ cmd_dns_status() {
         if [ -d "/etc/dnsmasq.d" ]; then
             for f in /etc/dnsmasq.d/wp-*.conf; do
                 if [ -f "$f" ]; then
-                    grep "^address=" "$f" | while read line; do
-                        local dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
+                    grep "^address=" "$f" | while IFS= read -r line; do
+                        local dom
+                        dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
                         echo -e "      ${dom} -> 127.0.0.1"
                     done
                 fi
             done
         fi
-        grep "^address=" /etc/dnsmasq.conf 2>/dev/null | while read line; do
-            local dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
+        grep "^address=" /etc/dnsmasq.conf 2>/dev/null | while IFS= read -r line; do
+            local dom
+            dom=$(echo "$line" | sed 's/address=\/\(.*\)\/127.0.0.1/\1/')
             echo -e "      ${dom} -> 127.0.0.1"
         done
     fi

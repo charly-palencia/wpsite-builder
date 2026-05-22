@@ -1,9 +1,13 @@
+# shellcheck shell=bash
 # =============================================
 # config.sh - Global configuration and constants
 # =============================================
 
 # Single source of truth: VERSION file at project root
 # Run: make set-version NEW_VERSION=x.y.z
+
+# These variables are used across sourced modules
+# shellcheck disable=SC2034
 VERSION="1.3.1"
 DB_ROOT_PASSWORD="wp_root_secret_2024"
 

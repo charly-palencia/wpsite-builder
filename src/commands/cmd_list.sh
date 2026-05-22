@@ -1,5 +1,5 @@
+# shellcheck shell=bash
 cmd_list() {
-    echo ""
     echo -e "${CYAN}WordPress Sites${NC}"
     echo -e "${DIM}─────────────────────────────────────────────${NC}"
 
@@ -8,14 +8,16 @@ cmd_list() {
         exit 0
     fi
 
-    local pma_domain=$(get_pma_domain)
+    local pma_domain
+    pma_domain=$(get_pma_domain)
     local found=0
 
     for site_dir in "$SITES_DIR"/*/; do
         [ -f "$site_dir/docker-compose.yml" ] || continue
         grep -q "^  traefik:" "$site_dir/docker-compose.yml" 2>/dev/null && continue
 
-        local site_name=$(basename "$site_dir")
+        local site_name
+        site_name=$(basename "$site_dir")
         found=1
 
         if docker ps --format '{{.Names}}' | grep -q "wp-${site_name}$"; then
