@@ -1,5 +1,6 @@
 # shellcheck shell=bash
 cmd_restart() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"

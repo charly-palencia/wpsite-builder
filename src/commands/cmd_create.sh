@@ -1,5 +1,6 @@
 # shellcheck shell=bash
 cmd_create() {
+    local site_name="$1"
     local domain_suffix="$2"
 
     if [ -z "$site_name" ]; then

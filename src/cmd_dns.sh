@@ -1,10 +1,11 @@
 # shellcheck shell=bash
 cmd_dns() {
+    local action="${1:-status}"
     local arg="$2"
     local os
     os=$(detect_os)
 
-    case "$arg" in
+    case "$action" in
         install)
             cmd_dns_install "$os"
             ;;

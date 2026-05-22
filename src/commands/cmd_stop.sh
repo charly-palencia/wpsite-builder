@@ -1,5 +1,6 @@
 # shellcheck shell=bash
 cmd_stop() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${YELLOW}Stopping all sites...${NC}"

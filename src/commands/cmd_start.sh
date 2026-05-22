@@ -1,5 +1,6 @@
 # shellcheck shell=bash
 cmd_start() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${YELLOW}Starting all sites...${NC}"

@@ -1,5 +1,6 @@
 # shellcheck shell=bash
 cmd_remove() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: You must specify a site name${NC}"

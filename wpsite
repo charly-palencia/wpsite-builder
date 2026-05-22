@@ -290,6 +290,7 @@ configure_site_ssl_in_traefik() {
 # --- src/commands/cmd_create.sh ---
 # shellcheck shell=bash
 cmd_create() {
+    local site_name="$1"
     local domain_suffix="$2"
 
     if [ -z "$site_name" ]; then
@@ -542,6 +543,7 @@ cmd_list() {
 # --- src/commands/cmd_start.sh ---
 # shellcheck shell=bash
 cmd_start() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${YELLOW}Starting all sites...${NC}"
@@ -582,6 +584,7 @@ cmd_start() {
 # --- src/commands/cmd_stop.sh ---
 # shellcheck shell=bash
 cmd_stop() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${YELLOW}Stopping all sites...${NC}"
@@ -613,6 +616,7 @@ cmd_stop() {
 # --- src/commands/cmd_restart.sh ---
 # shellcheck shell=bash
 cmd_restart() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"
@@ -642,6 +646,7 @@ cmd_restart() {
 # --- src/commands/cmd_remove.sh ---
 # shellcheck shell=bash
 cmd_remove() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: You must specify a site name${NC}"
@@ -703,6 +708,7 @@ cmd_remove() {
 # --- src/commands/cmd_logs.sh ---
 # shellcheck shell=bash
 cmd_logs() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"
@@ -723,6 +729,7 @@ cmd_logs() {
 # --- src/commands/cmd_shell.sh ---
 # shellcheck shell=bash
 cmd_shell() {
+    local site_name="$1"
 
     if [ -z "$site_name" ]; then
         echo -e "${RED}Error: Please specify a site name${NC}"
@@ -743,11 +750,12 @@ cmd_shell() {
 # --- src/cmd_dns.sh ---
 # shellcheck shell=bash
 cmd_dns() {
+    local action="${1:-status}"
     local arg="$2"
     local os
     os=$(detect_os)
 
-    case "$arg" in
+    case "$action" in
         install)
             cmd_dns_install "$os"
             ;;
