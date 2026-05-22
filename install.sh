@@ -7,7 +7,7 @@ set -e
 #        wget -qO- https://raw.githubusercontent.com/<user>/wpsite/main/install.sh | bash
 # =============================================
 
-REPO="${REPO:-onian-org/wpsite}"
+REPO="${REPO:-charly-palencia/wpsite-builer}"
 BRANCH="${BRANCH:-main}"
 VERSION="${VERSION:-latest}"
 INSTALL_DIR="${INSTALL_DIR:-}"

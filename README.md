@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ShellCheck](https://img.shields.io/badge/shellcheck-passing-brightgreen)](https://github.com/koalaman/shellcheck)
-![Version](https://img.shields.io/github/v/tag/onian-org/wpsite?label=version&sort=semver)
+![Version](https://img.shields.io/github/v/tag/charly-palencia/wpsite-builer?label=version&sort=semver)
 
 **wpsite** is a single-command tool to create and manage local Docker-based WordPress sites on macOS and Linux.  
 No Vagrant, no MAMP, no heavy GUI — just Docker Compose, Traefik, and a bash script.
@@ -10,13 +10,13 @@ No Vagrant, no MAMP, no heavy GUI — just Docker Compose, Traefik, and a bash s
 ## Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/onian-org/wpsite/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/charly-palencia/wpsite-builer/main/install.sh | bash
 ```
 
 Or with wget:
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/onian-org/wpsite/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/charly-palencia/wpsite-builer/main/install.sh | bash
 ```
 
 ## Requirements
@@ -112,7 +112,7 @@ wpsite create my-secure-site
 ## Development
 
 ```bash
-git clone https://github.com/onian-org/wpsite.git
+git clone https://github.com/charly-palencia/wpsite-builer.git
 cd wpsite
 
 # Install dependencies for development
