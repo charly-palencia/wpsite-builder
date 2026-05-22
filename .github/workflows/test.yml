@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'Makefile']
+  pull_request:
+    branches: [main]
+    paths: ['src/**', 'Makefile']
+
+jobs:
+  lint-and-build:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint source files
+        run: shellcheck src/lib/*.sh src/commands/*.sh src/main.sh src/dispatcher.sh src/cmd_dns.sh src/cmd_infra.sh
+
+      - name: Build
+        run: make build
+
+      - name: Smoke test
+        run: make test
+
+      - name: Upload built script
+        uses: actions/upload-artifact@v4
+        with:
+          name: wpsite
+          path: wpsite
