@@ -143,15 +143,7 @@ networks:
     external: true
 COMPOSE
 
-    # Regenerate Traefik config (scans all sites, writes clean YAML)
-    regenerate_traefik_config
-
-    if [ "$use_ssl" = true ]; then
-        echo -e "${YELLOW}Restarting Traefik...${NC}"
-        cd "$SITES_DIR" && docker compose restart traefik
-    fi
-
-    # Save site info
+    # Save site info (must be before regenerate, which reads .site-info)
     cat > "$site_dir/.site-info" <<INFO
 SITE_NAME=${site_name}
 DOMAIN=${domain}
@@ -161,6 +153,14 @@ DB_USER=${db_user}
 DB_PASSWORD=${db_password}
 SSL=${use_ssl}
 INFO
+
+    # Regenerate Traefik config (scans all sites, writes clean YAML)
+    regenerate_traefik_config
+
+    if [ "$use_ssl" = true ]; then
+        echo -e "${YELLOW}Restarting Traefik...${NC}"
+        cd "$SITES_DIR" && docker compose restart traefik
+    fi
 
     # Start the site
     echo -e "${YELLOW}Starting WordPress site...${NC}"

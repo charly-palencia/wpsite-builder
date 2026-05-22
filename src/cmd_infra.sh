@@ -232,6 +232,14 @@ cmd_infra() {
             fi
 
             echo -e "${YELLOW}Regenerating Traefik config...${NC}"
+
+            # Update site info to mark SSL as enabled before regeneration
+            if grep -q "^SSL=" "$site_dir/.site-info" 2>/dev/null; then
+                sed -i 's/^SSL=.*/SSL=true/' "$site_dir/.site-info"
+            else
+                echo "SSL=true" >> "$site_dir/.site-info"
+            fi
+
             regenerate_traefik_config
 
             echo -e "${YELLOW}Restarting Traefik...${NC}"
