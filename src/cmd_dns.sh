@@ -158,6 +158,20 @@ cmd_dns_setup() {
                 echo -e "  ${GREEN}+${NC} Added to /etc/dnsmasq.conf"
             fi
         fi
+
+        # Configure systemd-resolved to forward .test queries to dnsmasq
+        if command -v systemctl &> /dev/null && systemctl is-active --quiet systemd-resolved 2>/dev/null; then
+            local resolved_dir="/etc/systemd/resolved.conf.d"
+            sudo mkdir -p "$resolved_dir"
+            if [ ! -f "$resolved_dir/wpsite.conf" ]; then
+                printf '[Resolve]\nDNS=127.0.0.1\nDomains=~test\n' | sudo tee "$resolved_dir/wpsite.conf" > /dev/null
+                echo -e "  ${GREEN}+${NC} Configured systemd-resolved to forward .test to dnsmasq"
+                sudo systemctl restart systemd-resolved
+            else
+                echo -e "  ${YELLOW}•${NC} systemd-resolved already configured for .test domains"
+            fi
+        fi
+
         sudo systemctl restart dnsmasq
     else
         echo -e "${RED}Error: Unsupported OS${NC}"
