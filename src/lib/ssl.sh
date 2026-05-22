@@ -4,11 +4,7 @@
 # =============================================
 
 check_mkcert_installed() {
-    if command -v mkcert &> /dev/null; then
-        return 0
-    else
-        return 1
-    fi
+    command -v mkcert &> /dev/null
 }
 
 install_mkcert() {
@@ -56,9 +52,7 @@ generate_ssl_cert() {
 
     echo -e "${YELLOW}Generating SSL certificate for ${domain}...${NC}"
 
-    # Generate certificate and key
-    local mkcert_result
-    mkcert_result=0
+    local mkcert_result=0
     mkcert -cert-file "$cert_dir/cert.pem" -key-file "$cert_dir/key.pem" "$domain" "*.${domain}" 2>/dev/null || mkcert_result=$?
 
     if [ "$mkcert_result" -eq 0 ]; then
@@ -77,80 +71,119 @@ setup_mkcert_caroot() {
     fi
 }
 
-# Configure SSL for a site in Traefik dynamic config.
-# Copies certs to certs/, adds/dedupes cert in tls.certificates,
-# and ensures HTTPS routers + redirect middleware exist for the site.
-configure_site_ssl_in_traefik() {
-    local site_name="$1"
-    local domain="$2"
-    local site_dir="$SITES_DIR/$site_name"
+# Scan all site directories and regenerate traefik-dynamic.yml from scratch.
+# This keeps the config clean with no stale entries from removed sites
+# and avoids YAML corruption from sed-based patching.
+regenerate_traefik_config() {
     local dynamic_file="$SITES_DIR/traefik-dynamic.yml"
     local certs_dir="$SITES_DIR/certs"
-
-    # Ensure certs directory exists
     mkdir -p "$certs_dir"
 
-    # Copy site certificates to the shared certs directory
-    if [ -f "$site_dir/ssl/cert.pem" ] && [ -f "$site_dir/ssl/key.pem" ]; then
-        cp "$site_dir/ssl/cert.pem" "$certs_dir/${site_name}-cert.pem"
-        cp "$site_dir/ssl/key.pem" "$certs_dir/${site_name}-key.pem"
-        echo -e "${GREEN}Certificates copied to shared certs directory${NC}"
-    else
-        echo -e "${RED}Error: SSL certificates not found for $site_name${NC}"
-        echo -e "Run 'wpsite create' with HTTPS enabled to generate certificates."
-        return 1
-    fi
+    # Copy each site's SSL certs to the shared certs dir
+    for site_dir in "$SITES_DIR"/*/; do
+        [ -f "$site_dir/.site-info" ] || continue
+        local site_name
+        site_name=$(basename "$site_dir")
+        if [ -f "$site_dir/ssl/cert.pem" ] && [ -f "$site_dir/ssl/key.pem" ]; then
+            cp "$site_dir/ssl/cert.pem" "$certs_dir/${site_name}-cert.pem" 2>/dev/null || true
+            cp "$site_dir/ssl/key.pem" "$certs_dir/${site_name}-key.pem" 2>/dev/null || true
+        fi
+    done
 
-    # Read the current dynamic file
-    local content
-    content=$(cat "$dynamic_file")
+    # Generate the full config from scratch
+    {
+        # Base header
+        echo "http:"
+        echo "  middlewares:"
+        echo "    redirect-to-https:"
+        echo "      redirectScheme:"
+        echo "        scheme: https"
+        echo "        permanent: true"
+        echo "  routers:"
+        echo "    phpmyadmin:"
+        echo "      rule: \"Host(\`pma.test\`)\""
+        echo "      entryPoints:"
+        echo "        - \"web\""
+        echo "      service: \"phpmyadmin\""
 
-    # Remove any existing cert entry for this site (dedup)
-    content=$(echo "$content" | sed -n '/# cert: '"${site_name}"'/,/^  - certFile:/{/^  - certFile:/d; /# cert: '"${site_name}"'/d;};p')
+        # Per-site routers
+        for site_dir in "$SITES_DIR"/*/; do
+            [ -f "$site_dir/.site-info" ] || continue
+            local site_name
+            site_name=$(basename "$site_dir")
+            local domain
+            domain=$(grep "^DOMAIN=" "$site_dir/.site-info" | cut -d= -f2)
+            local ssl
+            ssl=$(grep "^SSL=" "$site_dir/.site-info" | cut -d= -f2)
 
-    # Insert after the tls: certificates: line
-    content=$(echo "$content" | sed "/^tls:/,/^  stores:/{
-/^  certificates:/a\
-    - certFile: /etc/traefik/certs/${site_name}-cert.pem\
-      keyFile: /etc/traefik/certs/${site_name}-key.pem
-}")
+            if [ "$ssl" = "true" ]; then
+                echo "    ${site_name}-https:"
+                echo "      rule: \"Host(\`${domain}\`)\""
+                echo "      entryPoints:"
+                echo "        - \"websecure\""
+                echo "      service: \"${site_name}\""
+                echo "      tls: {}"
+                echo "    ${site_name}-http:"
+                echo "      rule: \"Host(\`${domain}\`)\""
+                echo "      entryPoints:"
+                echo "        - \"web\""
+                echo "      middlewares:"
+                echo "        - \"redirect-to-https\""
+                echo "      service: \"${site_name}\""
+            else
+                echo "    ${site_name}:"
+                echo "      rule: \"Host(\`${domain}\`)\""
+                echo "      entryPoints:"
+                echo "        - \"web\""
+                echo "      service: \"${site_name}\""
+            fi
+        done
 
-    # Ensure HTTPS router exists for this site
-    if ! echo "$content" | grep -q "router-${site_name}-https"; then
-        # Insert before the services section
-        content=$(echo "$content" | sed "/^  services:/i\\
-    ${site_name}-https:\\
-      rule: \"Host(\`${domain}\`)\"\\
-      entryPoints:\\
-        - \"websecure\"\\
-      service: \"${site_name}\"\\
-      tls: {}
-")
-    fi
+        # Services header
+        echo "  services:"
+        echo "    phpmyadmin:"
+        echo "      loadBalancer:"
+        echo "        servers:"
+        echo "          - url: \"http://wp-phpmyadmin:80\""
 
-    # Ensure redirect middleware exists
-    if ! echo "$content" | grep -q "redirect-to-https"; then
-        content=$(echo "$content" | sed "/^  middlewares:/a\\
-    redirect-to-https:\\
-      redirectScheme:\\
-        scheme: https\\
-        permanent: true
-")
-    fi
+        # Per-site services
+        for site_dir in "$SITES_DIR"/*/; do
+            [ -f "$site_dir/.site-info" ] || continue
+            local site_name
+            site_name=$(basename "$site_dir")
 
-    # Ensure HTTP router with redirect exists for this site
-    if ! echo "$content" | grep -q "router-${site_name}-http"; then
-        content=$(echo "$content" | sed "/^  services:/i\\
-    ${site_name}-http:\\
-      rule: \"Host(\`${domain}\`)\"\\
-      entryPoints:\\
-        - \"web\"\\
-      middlewares:\\
-        - \"redirect-to-https\"\\
-      service: \"${site_name}\"
-")
-    fi
+            echo "    ${site_name}:"
+            echo "      loadBalancer:"
+            echo "        servers:"
+            echo "          - url: \"http://wp-${site_name}:80\""
+        done
 
-    echo "$content" > "$dynamic_file"
-    echo -e "${GREEN}Traefik configuration updated for ${domain} (HTTPS)${NC}"
+        # TLS section
+        echo ""
+        echo "tls:"
+        echo "  stores:"
+        echo "    default:"
+        echo "      defaultCertificate:"
+        echo "        certFile: /etc/traefik/certs/default.pem"
+        echo "        keyFile: /etc/traefik/certs/default-key.pem"
+        echo "  certificates:"
+        echo "    - certFile: /etc/traefik/certs/default.pem"
+        echo "      keyFile: /etc/traefik/certs/default-key.pem"
+
+        # Per-site TLS certs
+        for site_dir in "$SITES_DIR"/*/; do
+            [ -f "$site_dir/.site-info" ] || continue
+            local site_name
+            site_name=$(basename "$site_dir")
+            local ssl
+            ssl=$(grep "^SSL=" "$site_dir/.site-info" | cut -d= -f2)
+
+            if [ "$ssl" = "true" ]; then
+                echo "    - certFile: /etc/traefik/certs/${site_name}-cert.pem"
+                echo "      keyFile: /etc/traefik/certs/${site_name}-key.pem"
+            fi
+        done
+    } > "$dynamic_file"
+
+    echo -e "${GREEN}Traefik configuration regenerated (${dynamic_file})${NC}"
 }

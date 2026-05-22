@@ -231,11 +231,8 @@ cmd_infra() {
                 fi
             fi
 
-            echo -e "${YELLOW}Configuring SSL in Traefik for $site_name ($domain)...${NC}"
-            if ! configure_site_ssl_in_traefik "$site_name" "$domain"; then
-                echo -e "${RED}Failed to configure SSL${NC}"
-                exit 1
-            fi
+            echo -e "${YELLOW}Regenerating Traefik config...${NC}"
+            regenerate_traefik_config
 
             echo -e "${YELLOW}Restarting Traefik...${NC}"
             cd "$SITES_DIR" || exit 1

@@ -143,33 +143,10 @@ networks:
     external: true
 COMPOSE
 
-    local dynamic_file="$SITES_DIR/traefik-dynamic.yml"
-    local content
-    content=$(cat "$dynamic_file")
-    local router_entry="    ${site_name}:\n      rule: \"Host(\`${domain}\`)\"\n      entryPoints:\n        - \"${traefik_entrypoint}\"\n      service: \"${site_name}\""
+    # Regenerate Traefik config (scans all sites, writes clean YAML)
+    regenerate_traefik_config
 
     if [ "$use_ssl" = true ]; then
-        router_entry="${router_entry}\n      tls: {}"
-    fi
-
-    # Insert router before services section
-    content=$(echo "$content" | sed "/^  services:/i\\
-${router_entry}
-")
-
-    # Insert service before services section, then append the new service
-    content=$(echo "$content" | sed "/^  services:/a\\
-\\
-    ${site_name}:\\
-      loadBalancer:\\
-        servers:\\
-          - url: \"http://wp-${site_name}:80\"
-")
-
-    echo "$content" > "$dynamic_file"
-
-    if [ "$use_ssl" = true ]; then
-        configure_site_ssl_in_traefik "$site_name" "$domain"
         echo -e "${YELLOW}Restarting Traefik...${NC}"
         cd "$SITES_DIR" && docker compose restart traefik
     fi

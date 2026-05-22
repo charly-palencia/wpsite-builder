@@ -58,4 +58,9 @@ cmd_remove() {
     fi
 
     echo -e "${GREEN}Site '${site_name}' removed${NC}"
+
+    # Regenerate Traefik config to remove stale entries
+    regenerate_traefik_config
+    echo -e "${YELLOW}Restarting Traefik...${NC}"
+    cd "$SITES_DIR" && docker compose restart traefik 2>/dev/null || true
 }
