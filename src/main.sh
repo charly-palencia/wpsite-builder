@@ -6,7 +6,7 @@ set -e
 # wpsite - WordPress Site Manager
 # Manage local Docker-based WordPress sites
 #
-# Version: 1.3.1
+# Version: 1.4.0
 # Changelog:
 #   1.3.1 - Fixed YAML corruption bug in 'wpsite infra ssl' command
 #         - Refactored SSL configuration into reusable helper function
