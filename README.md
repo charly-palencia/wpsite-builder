@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ShellCheck](https://img.shields.io/badge/shellcheck-passing-brightgreen)](https://github.com/koalaman/shellcheck)
-![Version](https://img.shields.io/github/v/tag/charly-palencia/wpsite-builer?label=version&sort=semver)
+![Version](https://img.shields.io/github/v/tag/charly-palencia/wpsite-builder?label=version&sort=semver)
 
 **wpsite** is a single-command tool to create and manage local Docker-based WordPress sites on macOS and Linux.  
 No Vagrant, no MAMP, no heavy GUI — just Docker Compose, Traefik, and a bash script.
@@ -10,13 +10,13 @@ No Vagrant, no MAMP, no heavy GUI — just Docker Compose, Traefik, and a bash s
 ## Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/charly-palencia/wpsite-builer/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/charly-palencia/wpsite-builder/main/install.sh | bash
 ```
 
 Or with wget:
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/charly-palencia/wpsite-builer/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/charly-palencia/wpsite-builder/main/install.sh | bash
 ```
 
 ## Requirements
@@ -55,6 +55,8 @@ wpsite restart <name>                  # Restart a site
 wpsite remove <name>                   # Remove a site (destructive)
 wpsite logs <name>                     # Follow container logs
 wpsite shell <name>                    # Open bash in WordPress container
+wpsite go <name>                       # Jump into site directory
+wpsite open <name>                     # Open site folder in file manager
 ```
 
 ### Infrastructure
@@ -112,7 +114,7 @@ wpsite create my-secure-site
 ## Development
 
 ```bash
-git clone https://github.com/charly-palencia/wpsite-builer.git
+git clone https://github.com/charly-palencia/wpsite-builder.git
 cd wpsite
 
 # Install dependencies for development
@@ -156,8 +158,10 @@ wpsite/
 │   │   ├── cmd_stop.sh    # Stop site
 │   │   ├── cmd_restart.sh # Restart site
 │   │   ├── cmd_remove.sh  # Remove site
-│   │   ├── cmd_logs.sh    # Container logs
-│   │   └── cmd_shell.sh   # Container shell
+    │   │   ├── cmd_logs.sh    # Container logs
+    │   │   ├── cmd_shell.sh   # Container shell
+    │   │   ├── cmd_go.sh      # Jump into site directory
+    │   │   └── cmd_open.sh    # Open site folder in file manager
 │   ├── cmd_dns.sh         # DNS dnsmasq management
 │   └── cmd_infra.sh       # Infrastructure management
 └── .github/workflows/
