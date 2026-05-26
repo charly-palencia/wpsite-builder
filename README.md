@@ -158,10 +158,10 @@ wpsite/
 │   │   ├── cmd_stop.sh    # Stop site
 │   │   ├── cmd_restart.sh # Restart site
 │   │   ├── cmd_remove.sh  # Remove site
-    │   │   ├── cmd_logs.sh    # Container logs
-    │   │   ├── cmd_shell.sh   # Container shell
-    │   │   ├── cmd_go.sh      # Jump into site directory
-    │   │   └── cmd_open.sh    # Open site folder in file manager
+│   │   ├── cmd_logs.sh    # Container logs
+│   │   ├── cmd_shell.sh   # Container shell
+│   │   ├── cmd_go.sh      # Jump into site directory
+│   │   └── cmd_open.sh    # Open site folder in file manager
 │   ├── cmd_dns.sh         # DNS dnsmasq management
 │   └── cmd_infra.sh       # Infrastructure management
 └── .github/workflows/

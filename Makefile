@@ -115,5 +115,7 @@ set-version:
 	@sed -i '' 's/^# Version: .*/# Version: $(NEW_VERSION)/' src/lib/config.sh
 	@sed -i '' 's/^# Version: .*/# Version: $(NEW_VERSION)/' src/main.sh
 	@echo "  Updated src/main.sh header"
+	@sed -i '' 's/make set-version NEW_VERSION=.*/make set-version NEW_VERSION=$(NEW_VERSION)/' README.md
+	@echo "  Updated README.md example"
 	@$(MAKE) build
 	@echo "Version updated to $(NEW_VERSION), rebuilt"
