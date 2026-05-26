@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>wpsite — WordPress Site Manager Documentation</title>
+    <meta name="description" content="Official documentation for wpsite - the one-command WordPress development environment.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-light: #60a5fa;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.2);
+            --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.3), 0 10px 10px -5px rgba(0,0,0,0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav-brand span {
+            color: var(--accent-light);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text);
+        }
+
+        .nav-cta {
+            background: var(--accent);
+            color: white !important;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .nav-cta:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 160px 24px 80px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--text) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .install-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 640px;
+            margin: 0 auto 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+        }
+
+        .install-box code {
+            color: var(--accent-light);
+        }
+
+        .copy-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: var(--radius);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .install-note {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* Sections */
+        .section {
+            padding: 80px 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-header h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+        }
+
+        /* Commands */
+        .command-group {
+            margin-bottom: 48px;
+        }
+
+        .command-group h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .command-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .command-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .command-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9375rem;
+        }
+
+        .command-table tr:hover td {
+            background: var(--bg-secondary);
+        }
+
+        .command-table code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-light);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .command-table td:last-child {
+            color: var(--text-secondary);
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+        }
+
+        pre code {
+            color: var(--text);
+            background: none;
+            padding: 0;
+        }
+
+        /* Quick Start Steps */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .step {
+            display: flex;
+            gap: 24px;
+            padding: 32px 0;
+            position: relative;
+        }
+
+        .step:not(:last-child) {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        /* Footer */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 48px 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: var(--accent-light);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .section {
+                padding: 60px 16px;
+            }
+
+            .command-table {
+                font-size: 0.875rem;
+            }
+
+            .command-table td {
+                padding: 10px 12px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border);
+        }
+
+        /* Smooth scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="#" class="nav-brand">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="#3b82f6"/>
+                <path d="M10 22V10h4.5l2.5 6 2.5-6H24v12h-3.5v-7.5L18 22h-3l-2.5-7.5V22H10z" fill="white"/>
+            </svg>
+            <span>wpsite</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#commands">Commands</a></li>
+            <li><a href="#quickstart">Quick Start</a></li>
+            <li><a href="https://github.com/charly-palencia/wpsite-builder" target="_blank">GitHub</a></li>
+        </ul>
+        <a href="#install" class="nav-cta">Install</a>
+    </nav>
+
+    <header class="hero" id="install">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            <span>v1.4.0 — Now Available</span>
+        </div>
+        <h1>One-Command WordPress Development</h1>
+        <p>Stop fighting with MAMP, Vagrant, or manual Docker setups. Create production-grade local WordPress sites with SSL, DNS, and reverse-proxy in seconds.</p>
+
+        <div class="install-box">
+            <code>curl -fsSL wpsite.dev/install | bash</code>
+            <button class="copy-btn" onclick="copyInstall()">Copy</button>
+        </div>
+        <p class="install-note">Or visit <a href="https://github.com/charly-palencia/wpsite-builder" style="color: var(--accent-light);">GitHub</a> for manual install.</p>
+    </header>
+
+    <section class="section" id="features">
+        <div class="section-header">
+            <h2>Everything You Need</h2>
+            <p>A complete local WordPress stack, managed from your terminal.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">&#9889;</div>
+                <h3>One Command Setup</h3>
+                <p><code>wpsite create my-site</code> gives you a running WordPress site with zero configuration.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128274;</div>
+                <h3>Auto SSL Certificates</h3>
+                <p>HTTPS works instantly with mkcert. No browser warnings, no manual cert configuration.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#127760;</div>
+                <h3>Custom Domains</h3>
+                <p>Use any domain you want: <code>my-site.test</code>, <code>shop.local.dev</code>, or your own TLD.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128230;</div>
+                <h3>Shared Infrastructure</h3>
+                <p>One MariaDB + Traefik + phpMyAdmin serves all your sites efficiently.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#127920;</div>
+                <h3>Per-Site Isolation</h3>
+                <p>Each site gets its own database, user, and container. Clean and secure.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128161;</div>
+                <h3>DNS Automation</h3>
+                <p>dnsmasq auto-configures <code>.test</code> domains. No more editing <code>/etc/hosts</code>.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128187;</div>
+                <h3>Developer Friendly</h3>
+                <p>Jump into directories, open folders, tail logs, and exec into containers instantly.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#129504;</div>
+                <h3>Clean Removal</h3>
+                <p><code>wpsite remove my-site</code> deletes everything: container, database, and files.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="quickstart" style="background: var(--bg-secondary); margin: 0; max-width: 100%;">
+        <div style="max-width: 900px; margin: 0 auto;">
+            <div class="section-header">
+                <h2>Get Started in 4 Steps</h2>
+                <p>From zero to a running WordPress site in under 2 minutes.</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Install Infrastructure</h4>
+                        <p>Creates the shared Docker Compose stack (MariaDB, Traefik, phpMyAdmin).</p>
+                        <pre><code>wpsite infra install</code></pre>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Start Services</h4>
+                        <p>Launches the base infrastructure containers.</p>
+                        <pre><code>wpsite infra start</code></pre>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Configure DNS</h4>
+                        <p>Auto-configures dnsmasq for <code>.test</code> domain resolution.</p>
+                        <pre><code>wpsite dns setup</code></pre>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Create Your Site</h4>
+                        <p>Creates a new WordPress site with database, SSL cert, and Traefik routing.</p>
+                        <pre><code>wpsite create my-site
+# → https://my-site.test</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="commands">
+        <div class="section-header">
+            <h2>Command Reference</h2>
+            <p>Complete list of all wpsite commands and their usage.</p>
+        </div>
+
+        <div class="command-group">
+            <h3>Site Management</h3>
+            <table class="command-table">
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>wpsite create &lt;name&gt; [suffix]</code></td>
+                        <td>Create a WordPress site with optional custom domain suffix</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite list</code></td>
+                        <td>Show all sites with status (running / stopped)</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite start [name]</code></td>
+                        <td>Start a site, or all sites if no name given</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite stop [name]</code></td>
+                        <td>Stop a site, or all sites if no name given</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite restart &lt;name&gt;</code></td>
+                        <td>Restart a site</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite remove &lt;name&gt;</code></td>
+                        <td>Completely remove a site (containers, DB, files)</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite logs &lt;name&gt;</code></td>
+                        <td>Follow real-time container logs</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite shell &lt;name&gt;</code></td>
+                        <td>Open a bash shell inside the WordPress container</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite go &lt;name&gt;</code></td>
+                        <td>Jump into the site's directory in a new shell</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite open &lt;name&gt;</code></td>
+                        <td>Open the site's folder in Finder (macOS) or file manager (Linux)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="command-group">
+            <h3>Infrastructure</h3>
+            <table class="command-table">
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>wpsite infra install</code></td>
+                        <td>Generate base docker-compose.yml (one-time setup)</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite infra start</code></td>
+                        <td>Start MariaDB, Traefik, phpMyAdmin</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite infra stop</code></td>
+                        <td>Stop all infrastructure</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite infra restart</code></td>
+                        <td>Restart infrastructure</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite infra status</code></td>
+                        <td>Check which services are running</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite infra ssl &lt;name&gt;</code></td>
+                        <td>Configure SSL for an existing site</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite infra logs</code></td>
+                        <td>Follow infrastructure logs</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="command-group">
+            <h3>DNS (dnsmasq)</h3>
+            <table class="command-table">
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>wpsite dns install</code></td>
+                        <td>Install dnsmasq via Homebrew or apt</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite dns setup</code></td>
+                        <td>Configure .test domain resolution automatically</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite dns add &lt;domain&gt;</code></td>
+                        <td>Add a custom domain to dnsmasq</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite dns remove &lt;domain&gt;</code></td>
+                        <td>Remove a custom domain</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite dns status</code></td>
+                        <td>Check DNS configuration</td>
+                    </tr>
+                    <tr>
+                        <td><code>wpsite dns restart</code></td>
+                        <td>Restart dnsmasq</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="command-group">
+            <h3>Examples</h3>
+            <pre><code># Create a site with a custom TLD
+wpsite create mysite local.dev
+# → http://mysite.local.dev
+
+# Create a site with HTTPS (auto-generated SSL)
+wpsite create my-secure-site
+# → https://my-secure-site.test
+
+# Create and immediately start working
+wpsite create client-project
+wpsite go client-project</code></pre>
+        </div>
+    </section>
+
+    <section class="section" style="background: var(--bg-secondary); margin: 0; max-width: 100%;">
+        <div style="max-width: 900px; margin: 0 auto; padding: 80px 24px;">
+            <div class="section-header">
+                <h2>System Requirements</h2>
+                <p>Minimal dependencies. Works on macOS and Linux.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">&#128023;</div>
+                    <h3>Docker</h3>
+                    <p>Docker Desktop (Mac/Linux) or docker + docker compose plugin.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128274;</div>
+                    <h3>openssl</h3>
+                    <p>Pre-installed on macOS and most Linux distributions.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128193;</div>
+                    <h3>mkcert</h3>
+                    <p>Optional. Auto-installed when you create an HTTPS site for the first time.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>Released under the <a href="https://github.com/charly-palencia/wpsite-builder/blob/main/LICENSE">MIT License</a></p>
+        <p style="margin-top: 8px;"><a href="https://github.com/charly-palencia/wpsite-builder">View on GitHub</a></p>
+    </footer>
+
+    <script>
+        function copyInstall() {
+            const cmd = 'curl -fsSL https://raw.githubusercontent.com/charly-palencia/wpsite-builder/main/install.sh | bash';
+            navigator.clipboard.writeText(cmd).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            });
+        }
+    </script>
+</body>
+</html>

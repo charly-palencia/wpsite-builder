@@ -1,100 +1,130 @@
-# wpsite - WordPress Site Manager
+# wpsite — One-Command WordPress Development Environment
 
+[![Version](https://img.shields.io/github/v/tag/charly-palencia/wpsite-builder?label=version&sort=semver)](https://github.com/charly-palencia/wpsite-builder/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ShellCheck](https://img.shields.io/badge/shellcheck-passing-brightgreen)](https://github.com/koalaman/shellcheck)
-![Version](https://img.shields.io/github/v/tag/charly-palencia/wpsite-builder?label=version&sort=semver)
 
-**wpsite** is a single-command tool to create and manage local Docker-based WordPress sites on macOS and Linux.  
-No Vagrant, no MAMP, no heavy GUI — just Docker Compose, Traefik, and a bash script.
+> Stop fighting with MAMP, Vagrant, or manual Docker setups. **wpsite** spins up production-grade local WordPress sites with SSL, DNS, and reverse-proxy in a single command.
 
-## Quick Install
+---
+
+## Install in 10 Seconds
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/charly-palencia/wpsite-builder/main/install.sh | bash
 ```
 
-Or with wget:
+No config files. No GUI bloat. Just Docker.
 
-```bash
-wget -qO- https://raw.githubusercontent.com/charly-palencia/wpsite-builder/main/install.sh | bash
-```
+---
 
-## Requirements
+## Why wpsite?
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Mac/Linux) or `docker` + `docker compose`
-- `openssl` (pre-installed on macOS and most Linux distros)
-- `mkcert` (optional, for HTTPS support — auto-installed if needed)
+| Before | After |
+|--------|-------|
+| Download MAMP / LocalWP / XAMPP | `wpsite create my-site` |
+| Manually edit `hosts` file | `wpsite dns setup` (auto-configures `.test` domains) |
+| Self-signed SSL nightmares | `wpsite create my-site` → HTTPS works instantly (mkcert) |
+| One giant shared database | Per-site isolated MariaDB users & databases |
+| No reverse proxy | Traefik routes every site with clean URLs |
+| Stuck in a GUI | Full CLI control: start, stop, logs, shell — all from the terminal |
+
+---
+
+## Features
+
+- **One Command** — `wpsite create <name>` gives you a running WordPress site
+- **Custom Domains** — `my-site.test`, `shop.local.dev`, anything you want
+- **Auto SSL** — HTTPS via mkcert, no browser warnings, no manual cert config
+- **Shared Infrastructure** — One MariaDB + Traefik + phpMyAdmin serves all sites
+- **Per-Site Isolation** — Each site gets its own database, user, and container
+- **DNS Automation** — dnsmasq setup for `.test` domains with zero `hosts` file edits
+- **Developer-Friendly** — Jump into directories, open folders, tail logs, exec into containers
+- **Clean Removal** — `wpsite remove <name>` deletes everything: container, DB, files
+- **macOS & Linux** — Works on both platforms with the same CLI
+
+---
 
 ## Quick Start
 
 ```bash
-# 1. Install infrastructure (MariaDB, Traefik, phpMyAdmin)
+# 1. Install shared infrastructure (once)
 wpsite infra install
 
-# 2. Start the infrastructure
+# 2. Start MariaDB, Traefik, and phpMyAdmin
 wpsite infra start
 
 # 3. Configure DNS for .test domains
 wpsite dns setup
 
-# 4. Create your first site
+# 4. Create your first WordPress site
 wpsite create my-site
-# → http://my-site.test
-```
-
-## Usage
-
-### Site Management
-
-```bash
-wpsite create <name> [domain-suffix]   # Create a WordPress site
-wpsite list                            # List all sites with status
-wpsite start [name]                    # Start site (or all if no name)
-wpsite stop [name]                     # Stop site (or all if no name)
-wpsite restart <name>                  # Restart a site
-wpsite remove <name>                   # Remove a site (destructive)
-wpsite logs <name>                     # Follow container logs
-wpsite shell <name>                    # Open bash in WordPress container
-wpsite go <name>                       # Jump into site directory
-wpsite open <name>                     # Open site folder in file manager
-```
-
-### Infrastructure
-
-```bash
-wpsite infra install                   # Generate docker-compose.yml once
-wpsite infra start                     # Start MariaDB, Traefik, phpMyAdmin
-wpsite infra stop                      # Stop all infrastructure
-wpsite infra restart                   # Restart infrastructure
-wpsite infra status                    # Check running services
-wpsite infra ssl <name>                # Configure SSL for existing site
-wpsite infra logs                      # Follow infrastructure logs
-```
-
-### DNS (dnsmasq)
-
-```bash
-wpsite dns install                     # Install dnsmasq via brew/apt
-wpsite dns setup                       # Configure .test domain resolution
-wpsite dns add <domain>                # Add a custom domain
-wpsite dns remove <domain>             # Remove a custom domain
-wpsite dns status                      # Check DNS configuration
-wpsite dns restart                     # Restart dnsmasq
-```
-
-### Examples
-
-```bash
-# Create site with custom TLD
-wpsite create mysite local.dev
-# → http://mysite.local.dev
-
-# Create site with HTTPS
-wpsite create my-secure-site
-# → https://my-secure-site.test
+# → https://my-site.test (with SSL)
 ```
 
 **phpMyAdmin** is available at `http://pma.test` (credentials: `root` / `wp_root_secret_2024`).
+
+---
+
+## Commands
+
+### Site Management
+
+| Command | Description |
+|---------|-------------|
+| `wpsite create <name> [suffix]` | Create a WordPress site with optional custom domain suffix |
+| `wpsite list` | Show all sites with status (running / stopped) |
+| `wpsite start [name]` | Start a site, or all sites if no name given |
+| `wpsite stop [name]` | Stop a site, or all sites if no name given |
+| `wpsite restart <name>` | Restart a site |
+| `wpsite remove <name>` | Completely remove a site (containers, DB, files) |
+| `wpsite logs <name>` | Follow real-time container logs |
+| `wpsite shell <name>` | Open a bash shell inside the WordPress container |
+| `wpsite go <name>` | Jump into the site's directory in a new shell |
+| `wpsite open <name>` | Open the site's folder in Finder (macOS) or file manager (Linux) |
+
+### Infrastructure
+
+| Command | Description |
+|---------|-------------|
+| `wpsite infra install` | Generate base `docker-compose.yml` (one-time setup) |
+| `wpsite infra start` | Start MariaDB, Traefik, phpMyAdmin |
+| `wpsite infra stop` | Stop all infrastructure |
+| `wpsite infra restart` | Restart infrastructure |
+| `wpsite infra status` | Check which services are running |
+| `wpsite infra ssl <name>` | Configure SSL for an existing site |
+| `wpsite infra logs` | Follow infrastructure logs |
+
+### DNS (dnsmasq)
+
+| Command | Description |
+|---------|-------------|
+| `wpsite dns install` | Install dnsmasq via Homebrew or apt |
+| `wpsite dns setup` | Configure `.test` domain resolution automatically |
+| `wpsite dns add <domain>` | Add a custom domain to dnsmasq |
+| `wpsite dns remove <domain>` | Remove a custom domain |
+| `wpsite dns status` | Check DNS configuration |
+| `wpsite dns restart` | Restart dnsmasq |
+
+---
+
+## Examples
+
+```bash
+# Create a site with a custom TLD
+wpsite create mysite local.dev
+# → http://mysite.local.dev
+
+# Create a site with HTTPS (auto-generated SSL)
+wpsite create my-secure-site
+# → https://my-secure-site.test
+
+# Create and immediately start working
+wpsite create client-project
+wpsite go client-project
+```
+
+---
 
 ## Directory Structure
 
@@ -103,7 +133,7 @@ wpsite create my-secure-site
 ├── docker-compose.yml               # Base infrastructure (MariaDB, Traefik, PMA)
 ├── traefik-dynamic.yml              # Traefik routing config
 ├── certs/                           # SSL certificates (shared)
-├── <site-name>/
+├── my-site/
 │   ├── docker-compose.yml           # Per-site WordPress config
 │   ├── wordpress/                   # WordPress files (mounted volume)
 │   ├── php.ini                      # Custom PHP config
@@ -111,26 +141,28 @@ wpsite create my-secure-site
 │   └── ssl/                         # Site-specific SSL certs (if HTTPS)
 ```
 
+---
+
 ## Development
 
 ```bash
 git clone https://github.com/charly-palencia/wpsite-builder.git
 cd wpsite
 
-# Install dependencies for development
+# Install linting dependency
 brew install shellcheck    # macOS
-apt install shellcheck     # Debian/Ubuntu
+# apt install shellcheck   # Debian/Ubuntu
 
-# Run from source (no build needed)
+# Run from source
 ./src/main.sh --version
 
 # Build the single-file script
 make build
 
-# Run smoke tests
+# Run tests
 make test
 
-# Lint with ShellCheck
+# Lint
 make lint
 ```
 
@@ -169,29 +201,38 @@ wpsite/
     └── test.yml           # CI (ShellCheck + build test)
 ```
 
+---
+
 ## Version Management
 
-The canonical version is stored in the `VERSION` file at the project root. To bump the version across all files:
+The canonical version lives in the `VERSION` file. To bump:
 
 ```bash
 make set-version NEW_VERSION=1.4.0
 ```
 
-This updates:
-- `VERSION` file
-- `src/lib/config.sh` (runtime variable)
-- `src/main.sh` (changelog header)
+This updates `VERSION`, `src/lib/config.sh`, `src/main.sh`, `README.md`, and rebuilds `wpsite`.
 
-Then rebuilds `wpsite` with the new version.
+---
+
+## Requirements
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Mac/Linux) or `docker` + `docker compose`
+- `openssl` (pre-installed on macOS and most Linux distros)
+- `mkcert` (optional, auto-installed when you create an HTTPS site)
+
+---
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
+2. Create a feature branch: `git checkout -b feature/my-feature`
 3. Make changes in `src/` (not the built `wpsite` file)
 4. Run `make lint` and `make test`
 5. Commit and push
 6. Open a Pull Request
+
+---
 
 ## License
 
