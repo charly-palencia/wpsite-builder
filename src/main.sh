@@ -50,6 +50,10 @@ source "$SCRIPT_DIR/commands/cmd_remove.sh"
 source "$SCRIPT_DIR/commands/cmd_logs.sh"
 # shellcheck source=src/commands/cmd_shell.sh
 source "$SCRIPT_DIR/commands/cmd_shell.sh"
+# shellcheck source=src/commands/cmd_go.sh
+source "$SCRIPT_DIR/commands/cmd_go.sh"
+# shellcheck source=src/commands/cmd_open.sh
+source "$SCRIPT_DIR/commands/cmd_open.sh"
 # shellcheck source=src/cmd_dns.sh
 source "$SCRIPT_DIR/cmd_dns.sh"
 # shellcheck source=src/cmd_infra.sh

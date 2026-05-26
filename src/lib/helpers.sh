@@ -19,6 +19,8 @@ COMMANDS:
     remove, rm        Remove a site completely
     logs              Show logs for a site
     shell             Open shell in site container
+    go, cd            Jump into a site directory (spawns a new shell)
+    open, o           Open site folder in file manager
     infra             Manage base infrastructure (mysql, traefik, pma)
     dns               Manage local DNS with dnsmasq
     help, h           Show this help message

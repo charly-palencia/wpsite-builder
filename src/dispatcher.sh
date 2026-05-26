@@ -36,6 +36,12 @@ case "$COMMAND" in
     shell|ssh|exec)
         cmd_shell "$ARG1"
         ;;
+    go|cd)
+        cmd_go "$ARG1"
+        ;;
+    open|o)
+        cmd_open "$ARG1"
+        ;;
     infra|base|i)
         cmd_infra "$ARG1" "$ARG2"
         ;;

@@ -69,6 +69,8 @@ COMMANDS:
     remove, rm        Remove a site completely
     logs              Show logs for a site
     shell             Open shell in site container
+    go, cd            Jump into a site directory (spawns a new shell)
+    open, o           Open site folder in file manager
     infra             Manage base infrastructure (mysql, traefik, pma)
     dns               Manage local DNS with dnsmasq
     help, h           Show this help message
@@ -762,6 +764,84 @@ cmd_shell() {
     cd "$site_dir" || exit 1
     docker compose exec wordpress bash
 }
+# --- src/commands/cmd_go.sh ---
+# shellcheck shell=bash
+# =============================================
+# cmd_go.sh - Jump into a site directory
+# =============================================
+
+cmd_go() {
+    local site_name="$1"
+
+    if [ -z "$site_name" ]; then
+        echo -e "${RED}Error: Please specify a site name${NC}"
+        echo -e "Usage: ${CYAN}wpsite go <site-name>${NC}"
+        exit 1
+    fi
+
+    local site_dir="$SITES_DIR/$site_name"
+
+    if [ ! -d "$site_dir" ]; then
+        echo -e "${RED}Error: Site '$site_name' not found${NC}"
+        exit 1
+    fi
+
+    # If stdout is not a terminal, just print the path so it can be used
+    # with "cd $(wpsite go <site>)"
+    if [ ! -t 1 ]; then
+        echo "$site_dir"
+        return 0
+    fi
+
+    echo -e "${YELLOW}Jumping into ${CYAN}${site_dir}${NC}..."
+    echo -e "${DIM}Type 'exit' to return${NC}"
+    cd "$site_dir" || exit 1
+    exec "$SHELL"
+}
+
+# --- src/commands/cmd_open.sh ---
+# shellcheck shell=bash
+# =============================================
+# cmd_open.sh - Open site folder in file manager
+# =============================================
+
+cmd_open() {
+    local site_name="$1"
+
+    if [ -z "$site_name" ]; then
+        echo -e "${RED}Error: Please specify a site name${NC}"
+        echo -e "Usage: ${CYAN}wpsite open <site-name>${NC}"
+        exit 1
+    fi
+
+    local site_dir="$SITES_DIR/$site_name"
+
+    if [ ! -d "$site_dir" ]; then
+        echo -e "${RED}Error: Site '$site_name' not found${NC}"
+        exit 1
+    fi
+
+    local os
+    os=$(detect_os)
+
+    if [ "$os" = "macos" ]; then
+        echo -e "${CYAN}Opening ${site_dir} in Finder...${NC}"
+        open "$site_dir"
+    elif [ "$os" = "linux" ]; then
+        if command -v xdg-open &> /dev/null; then
+            echo -e "${CYAN}Opening ${site_dir}...${NC}"
+            xdg-open "$site_dir"
+        else
+            echo -e "${RED}Error: xdg-open is required on Linux${NC}"
+            echo -e "Install it with your package manager (e.g. sudo apt install xdg-utils)"
+            exit 1
+        fi
+    else
+        echo -e "${RED}Error: Unsupported OS for 'open' command${NC}"
+        exit 1
+    fi
+}
+
 # --- src/cmd_dns.sh ---
 # shellcheck shell=bash
 cmd_dns() {
@@ -1457,6 +1537,12 @@ case "$COMMAND" in
         ;;
     shell|ssh|exec)
         cmd_shell "$ARG1"
+        ;;
+    go|cd)
+        cmd_go "$ARG1"
+        ;;
+    open|o)
+        cmd_open "$ARG1"
         ;;
     infra|base|i)
         cmd_infra "$ARG1" "$ARG2"

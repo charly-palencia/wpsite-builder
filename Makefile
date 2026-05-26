@@ -20,6 +20,8 @@ COMMANDS := \
 	$(SRC_DIR)/commands/cmd_remove.sh \
 	$(SRC_DIR)/commands/cmd_logs.sh \
 	$(SRC_DIR)/commands/cmd_shell.sh \
+	$(SRC_DIR)/commands/cmd_go.sh \
+	$(SRC_DIR)/commands/cmd_open.sh \
 	$(SRC_DIR)/cmd_dns.sh \
 	$(SRC_DIR)/cmd_infra.sh
 
