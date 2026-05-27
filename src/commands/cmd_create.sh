@@ -162,7 +162,9 @@ INFO
         cd "$SITES_DIR" && docker compose restart traefik
     fi
 
-    # Start the site
+    # Pull latest images then start the site
+    echo -e "${YELLOW}Pulling latest Docker images...${NC}"
+    cd "$site_dir" && docker compose pull
     echo -e "${YELLOW}Starting WordPress site...${NC}"
     cd "$site_dir" && docker compose up -d
 
