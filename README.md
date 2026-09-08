@@ -208,7 +208,7 @@ wpsite/
 The canonical version lives in the `VERSION` file. To bump:
 
 ```bash
-make set-version NEW_VERSION=1.4.0
+make set-version NEW_VERSION=1.5.0
 ```
 
 This updates `VERSION`, `src/lib/config.sh`, `src/main.sh`, `README.md`, and rebuilds `wpsite`.

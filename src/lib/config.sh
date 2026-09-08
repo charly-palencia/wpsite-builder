@@ -8,7 +8,7 @@
 
 # These variables are used across sourced modules
 # shellcheck disable=SC2034
-VERSION="1.4.0"
+VERSION="1.5.0"
 DB_ROOT_PASSWORD="wp_root_secret_2024"
 
 # Colors

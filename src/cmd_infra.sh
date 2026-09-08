@@ -28,7 +28,7 @@ cmd_infra_install() {
     cat > "$SITES_DIR/docker-compose.yml" <<'COMPOSE'
 services:
   mariadb:
-    image: mariadb:10.6
+    image: mariadb:12.3
     container_name: wp-mariadb
     restart: unless-stopped
     environment:
@@ -46,7 +46,7 @@ services:
       retries: 3
 
   traefik:
-    image: traefik:v3.3
+    image: traefik:v3.7
     container_name: wp-traefik
     restart: unless-stopped
     command:

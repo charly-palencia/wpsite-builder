@@ -4,7 +4,7 @@ set -e
 # =============================================
 # wpsite - WordPress Site Manager
 # Manage local Docker-based WordPress sites
-# Version: 1.4.0
+# Version: 1.5.0
 # Build: concatenated from src/ modules
 # =============================================
 
@@ -19,7 +19,7 @@ set -e
 
 # These variables are used across sourced modules
 # shellcheck disable=SC2034
-VERSION="1.4.0"
+VERSION="1.5.0"
 DB_ROOT_PASSWORD="wp_root_secret_2024"
 
 # Colors
@@ -487,7 +487,9 @@ INFO
         cd "$SITES_DIR" && docker compose restart traefik
     fi
 
-    # Start the site
+    # Pull latest images then start the site
+    echo -e "${YELLOW}Pulling latest Docker images...${NC}"
+    cd "$site_dir" && docker compose pull
     echo -e "${YELLOW}Starting WordPress site...${NC}"
     cd "$site_dir" && docker compose up -d
 
@@ -1234,7 +1236,7 @@ cmd_infra_install() {
     cat > "$SITES_DIR/docker-compose.yml" <<'COMPOSE'
 services:
   mariadb:
-    image: mariadb:10.6
+    image: mariadb:12.3
     container_name: wp-mariadb
     restart: unless-stopped
     environment:
@@ -1252,7 +1254,7 @@ services:
       retries: 3
 
   traefik:
-    image: traefik:v3.3
+    image: traefik:v3.7
     container_name: wp-traefik
     restart: unless-stopped
     command:
