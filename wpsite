@@ -4,7 +4,7 @@ set -e
 # =============================================
 # wpsite - WordPress Site Manager
 # Manage local Docker-based WordPress sites
-# Version: 1.5.0
+# Version: 1.6.0
 # Build: concatenated from src/ modules
 # =============================================
 
@@ -19,7 +19,7 @@ set -e
 
 # These variables are used across sourced modules
 # shellcheck disable=SC2034
-VERSION="1.5.0"
+VERSION="1.6.0"
 DB_ROOT_PASSWORD="wp_root_secret_2024"
 
 # Colors
@@ -434,7 +434,7 @@ PHPCONFIG
     cat > "$site_dir/docker-compose.yml" <<COMPOSE
 services:
   wordpress:
-    image: wordpress:latest
+    image: wordpress:7.1-php8.4-apache
     container_name: wp-${site_name}
     restart: unless-stopped
     environment:
@@ -1242,6 +1242,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: wp_root_secret_2024
       MYSQL_DATABASE: wordpress
+      MARIADB_AUTO_UPGRADE: "1"
     volumes:
       - mariadb_data:/var/lib/mysql
     networks:
@@ -1274,7 +1275,7 @@ services:
       - wp-network
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
+    image: phpmyadmin:5.2
     container_name: wp-phpmyadmin
     restart: unless-stopped
     environment:

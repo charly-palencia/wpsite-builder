@@ -6,8 +6,11 @@ set -e
 # wpsite - WordPress Site Manager
 # Manage local Docker-based WordPress sites
 #
-# Version: 1.5.0
+# Version: 1.6.0
 # Changelog:
+#   1.6.0 - Pinned WordPress to 7.1 on PHP 8.4 (was :latest)
+#         - Switched to official phpmyadmin:5.2 image
+#         - Enabled MARIADB_AUTO_UPGRADE for existing data volumes
 #   1.3.1 - Fixed YAML corruption bug in 'wpsite infra ssl' command
 #         - Refactored SSL configuration into reusable helper function
 #         - Now uses yq for proper YAML manipulation (deduped certs, idempotent)

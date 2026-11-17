@@ -109,7 +109,7 @@ PHPCONFIG
     cat > "$site_dir/docker-compose.yml" <<COMPOSE
 services:
   wordpress:
-    image: wordpress:latest
+    image: wordpress:7.1-php8.4-apache
     container_name: wp-${site_name}
     restart: unless-stopped
     environment:

@@ -34,6 +34,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: wp_root_secret_2024
       MYSQL_DATABASE: wordpress
+      MARIADB_AUTO_UPGRADE: "1"
     volumes:
       - mariadb_data:/var/lib/mysql
     networks:
@@ -66,7 +67,7 @@ services:
       - wp-network
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
+    image: phpmyadmin:5.2
     container_name: wp-phpmyadmin
     restart: unless-stopped
     environment:
